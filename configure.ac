@@ -49,6 +49,15 @@ AC_ARG_ENABLE([driver-deepoon],
 
 AM_CONDITIONAL([BUILD_DRIVER_DEEPOON], [test "x$driver_deepoon_enabled" != "xno"])
 
+# OSVR SDK Driver
+AC_ARG_ENABLE([driver-osvr-sdk],
+        [AS_HELP_STRING([--disable-driver-osvr-sdk],
+                [disable building of OSVR SDK driver [default=yes]])],
+        [driver_osvr_sdk_enabled=$enableval],
+        [driver_osvr_sdk_enabled='yes'])
+
+AM_CONDITIONAL([BUILD_DRIVER_OSVR_SDK], [test "x$driver_osvr_sdk_enabled" != "xno"])
+
 # External Driver
 AC_ARG_ENABLE([driver-external],
         [AS_HELP_STRING([--disable-driver-external],

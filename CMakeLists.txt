@@ -29,6 +29,7 @@ set(openhmd_source_files
 OPTION(OPENHMD_DRIVER_OCULUS_RIFT "Oculus Rift DK1 and DK2" ON)
 OPTION(OPENHMD_DRIVER_DEEPOON "Deepoon E2" ON)
 OPTION(OPENHMD_DRIVER_EXTERNAL "External sensor driver" ON)
+OPTION(OPENHMD_DRIVER_OSVR_SDK "OSVR SDK" ON)
 OPTION(OPENHMD_DRIVER_ANDROID "General Android driver" OFF)
 
 OPTION(OPENHMD_EXAMPLE_SIMPLE "Simple test binary" ON)
@@ -57,6 +58,17 @@ if(OPENHMD_DRIVER_DEEPOON)
 	include_directories(${HIDAPI_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${HIDAPI_LIBRARIES})
 endif(OPENHMD_DRIVER_DEEPOON)
+
+if(OPENHMD_DRIVER_OSVR_SDK)
+	set(openhmd_source_files ${openhmd_source_files}
+	${CMAKE_CURRENT_LIST_DIR}/src/drv_osvr_sdk/osvr.c
+	#${CMAKE_CURRENT_LIST_DIR}/src/drv_osvr_sdk/packet.c
+	)
+	add_definitions(-DDRIVER_OSVR_SDK)
+	find_package(osvr REQUIRED)
+	set(LIBS ${LIBS} osvrClientKit)
+	MESSAGE("LIBS: ${LIBS}")
+endif(OPENHMD_DRIVER_OSVR_SDK)
 
 if (OPENHMD_DRIVER_EXTERNAL)
 	set(openhmd_source_files ${openhmd_source_files}
