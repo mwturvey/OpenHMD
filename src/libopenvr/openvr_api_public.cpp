@@ -448,21 +448,247 @@ public:
     }
 };
 
+class OpenHMDCompositor : IVRCompositor
+{
+public:
+	void SetTrackingSpace( ETrackingUniverseOrigin eOrigin ) {
+            printf("set tracking space\n");
+            //TODO:
+        }
+
+	ETrackingUniverseOrigin GetTrackingSpace() {
+            printf("get tracking space\n");
+            //TODO:
+            return ETrackingUniverseOrigin::TrackingUniverseStanding;
+        }
+
+	EVRCompositorError WaitGetPoses( VR_ARRAY_COUNT(unRenderPoseArrayCount) TrackedDevicePose_t* pRenderPoseArray, uint32_t unRenderPoseArrayCount,
+		VR_ARRAY_COUNT(unGamePoseArrayCount) TrackedDevicePose_t* pGamePoseArray, uint32_t unGamePoseArrayCount ){
+            printf("wait get poses\n");
+            //TODO:
+            return VRCompositorError_None;
+        }
+
+	EVRCompositorError GetLastPoses( VR_ARRAY_COUNT( unRenderPoseArrayCount ) TrackedDevicePose_t* pRenderPoseArray, uint32_t unRenderPoseArrayCount,
+		VR_ARRAY_COUNT( unGamePoseArrayCount ) TrackedDevicePose_t* pGamePoseArray, uint32_t unGamePoseArrayCount ) {
+            printf("get last poses\n");
+            //TODO:
+            return VRCompositorError_None;
+        }
+
+	EVRCompositorError GetLastPoseForTrackedDeviceIndex( TrackedDeviceIndex_t unDeviceIndex, TrackedDevicePose_t *pOutputPose, TrackedDevicePose_t *pOutputGamePose ) {
+            printf("get last pose for %d\n", unDeviceIndex);
+            //TODO:
+            return VRCompositorError_None;
+        }
+
+	EVRCompositorError Submit( EVREye eEye, const Texture_t *pTexture, const VRTextureBounds_t* pBounds = 0, EVRSubmitFlags nSubmitFlags = Submit_Default ) {
+            printf("submit frame\n");
+            //TODO:
+            return VRCompositorError_None;
+        }
+
+	void ClearLastSubmittedFrame() {
+            printf("clear last frame\n");
+            //TODO:
+        }
+
+	void PostPresentHandoff() {
+            printf("postpresenthandoff\n");
+            //TODO:
+        }
+
+	bool GetFrameTiming( Compositor_FrameTiming *pTiming, uint32_t unFramesAgo = 0 ) {
+            printf("get frame timing\n");
+            //TODO:
+            return false;
+        }
+
+	uint32_t GetFrameTimings( Compositor_FrameTiming *pTiming, uint32_t nFrames ) {
+            printf("get frame timings\n");
+            //TODO:
+            return 0;
+        }
+
+	float GetFrameTimeRemaining() {
+            printf("frame time remaining\n");
+            //TODO:
+
+            return 1;
+        }
+
+	void GetCumulativeStats( Compositor_CumulativeStats *pStats, uint32_t nStatsSizeInBytes ) {
+            printf("get cumulative stats\n");
+            //TODO:
+        }
+
+	void FadeToColor( float fSeconds, float fRed, float fGreen, float fBlue, float fAlpha, bool bBackground = false ) {
+            printf("fade to color %f %f %f\n", fRed, fGreen, fBlue);
+            //TODO:
+        }
+
+	HmdColor_t GetCurrentFadeColor( bool bBackground = false ) {
+            printf("get fade color\n");
+            //TODO:
+            HmdColor_t hc;
+            hc.a = .5;
+            hc.r = .5;
+            hc.g = .5;
+            hc.b = .5;
+            return hc;
+        }
+
+	void FadeGrid( float fSeconds, bool bFadeIn ) {
+            printf("fade grid\n");
+            //TODO:
+        }
+
+	float GetCurrentGridAlpha() {
+            printf("get grid alpha\n");
+            //TODO:
+            return 0;
+        }
+
+	EVRCompositorError SetSkyboxOverride( VR_ARRAY_COUNT( unTextureCount ) const Texture_t *pTextures, uint32_t unTextureCount ) {
+            printf("skybox override\n");
+            //TODO:
+            return VRCompositorError_None;
+        }
+
+	void ClearSkyboxOverride() {
+            printf("clear skybox override\n");
+            //TODO:
+        }
+
+	void CompositorBringToFront() {
+            printf("bring compositor to front\n");
+        }
+
+	virtual void CompositorGoToBack() {
+            printf("compositor to back\n");
+        }
+
+	void CompositorQuit() {
+            printf("compositor quit\n");
+        }
+
+	bool IsFullscreen() {
+            printf("compositor fullscreen\n");
+            //TODO:
+            return true;
+        }
+
+	uint32_t GetCurrentSceneFocusProcess() {
+            printf("scene process\n");
+            //TODO:
+            return -1;
+        }
+
+	uint32_t GetLastFrameRenderer() {
+            printf("last frame renderer\n");
+            //TODO:
+            return -1;
+        }
+
+	bool CanRenderScene() {
+            printf("can render\n");
+            //TODO:
+            return true;
+        }
+
+	void ShowMirrorWindow() {
+            printf("show mirror\n");
+        }
+
+	void HideMirrorWindow() {
+            printf("hide mirror\n");
+        }
+
+	bool IsMirrorWindowVisible() {
+            printf("mirror shown?\n");
+            return false;
+        }
+
+	void CompositorDumpImages() {
+            printf("dump images\n");
+        }
+
+	bool ShouldAppRenderWithLowResources() {
+            printf("low resources?\n");
+            //TODO:
+            return false;
+        }
+
+	void ForceInterleavedReprojectionOn( bool bOverride ) {
+            printf("force interleaved\n");
+        }
+
+	void ForceReconnectProcess() {
+            printf("force reconnect\n");
+        }
+
+	void SuspendRendering( bool bSuspend ) {
+            printf("suspend rendering %d\n", bSuspend);
+        }
+
+	vr::EVRCompositorError GetMirrorTextureD3D11( vr::EVREye eEye, void *pD3D11DeviceOrResource, void **ppD3D11ShaderResourceView ) {
+            return VRCompositorError_None;
+        }
+	virtual void ReleaseMirrorTextureD3D11( void *pD3D11ShaderResourceView ) {
+        }
+
+	vr::EVRCompositorError GetMirrorTextureGL( vr::EVREye eEye, vr::glUInt_t *pglTextureId, vr::glSharedTextureHandle_t *pglSharedTextureHandle ) {
+            printf("get mirror gl\n");
+            //TODO:
+            return VRCompositorError_None;
+        }
+	bool ReleaseSharedGLTexture( vr::glUInt_t glTextureId, vr::glSharedTextureHandle_t glSharedTextureHandle ) {
+            printf("release gl shared texture\n");
+            //TODO:
+            return true;
+        }
+	void LockGLSharedTextureForAccess( vr::glSharedTextureHandle_t glSharedTextureHandle ) {
+            printf("lock gl shared texture\n");
+            //TODO:
+        }
+	void UnlockGLSharedTextureForAccess( vr::glSharedTextureHandle_t glSharedTextureHandle ) {
+            printf("unlock gl shared texture\n");
+            //TODO:
+        }
+
+	uint32_t GetVulkanInstanceExtensionsRequired( VR_OUT_STRING() char *pchValue, uint32_t unBufferSize ) {
+            printf("vk instance req\n");
+            //TODO:
+            return 0;
+        }
+
+	uint32_t GetVulkanDeviceExtensionsRequired( VkPhysicalDevice_T *pPhysicalDevice, VR_OUT_STRING() char *pchValue, uint32_t unBufferSize ) {
+            printf("vk dev req\n");
+            //TODO:
+            return 0;
+        }
+};
+
 void *VR_GetGenericInterface(const char *pchInterfaceVersion, EVRInitError *peError)
 {
         printf("getgenericinterface version %s \n", pchInterfaceVersion);
 
         if (strcmp (pchInterfaceVersion, "IVRSystem_016") == 0) {
-            printf("generic interface: IVRSystem_016\n");
+            printf("creating openhmd object for generic interface: IVRSystem_016\n");
             OpenHMDIVRSystem *m_pRenderModels = new OpenHMDIVRSystem();
             return m_pRenderModels;
         }
 
         if (strcmp (pchInterfaceVersion, "IVRRenderModels_005") == 0) {
-            printf("generic interface: IVRRenderModels_005: Rendermodels\n");
+            printf("creating openhmd object for generic interface: IVRRenderModels_005: Rendermodels\n");
             OpenHMDRenderModels *m_pRenderModels = new OpenHMDRenderModels();
             return m_pRenderModels;
+        }
 
+        if (strcmp (pchInterfaceVersion, "IVRCompositor_020") == 0) {
+            printf("creating openhmd object for generic interface: IVRCompositor_020\n");
+            OpenHMDCompositor *m_pRenderModels = new OpenHMDCompositor();
+            return m_pRenderModels;
         }
 
         *peError = VRInitError_None;
