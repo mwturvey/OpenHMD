@@ -4,6 +4,7 @@
 #include "ivrclientcore.h"
 #include "envvartools_public.h"
 #include "hmderrors_public.h"
+#include <string.h>
 
 using vr::EVRInitError;
 using vr::IVRSystem;
@@ -51,9 +52,131 @@ EVRInitError VR_LoadHmdSystemInternal()
 }
 
 
+class OpenHMDRenderModels : vr::IVRRenderModels {
+    EVRRenderModelError LoadRenderModel_Async( const char *pchRenderModelName, RenderModel_t **ppRenderModel ) {
+        printf("rendermodel async load requested: %s\n", pchRenderModelName);
+        //TODO: load
+        return VRRenderModelError_None;
+    }
+
+    void FreeRenderModel( RenderModel_t *pRenderModel ){
+        printf("free render model\n");
+        //TODO:
+    }
+
+    /** Loads and returns a texture for use in the application. */
+    EVRRenderModelError LoadTexture_Async( TextureID_t textureId, RenderModel_TextureMap_t **ppTexture ) {
+        printf("load texture async requested: %d\n", textureId);
+        //TODO:
+        return VRRenderModelError_None;
+    }
+
+    void FreeTexture( RenderModel_TextureMap_t *pTexture ) {
+        printf("free texture requested\n");
+        //TODO:
+
+    }
+
+    EVRRenderModelError LoadTextureD3D11_Async( TextureID_t textureId, void *pD3D11Device, void **ppD3D11Texture2D ) {
+        printf("\n");
+        //TODO:
+        return VRRenderModelError_None;
+    }
+
+    EVRRenderModelError LoadIntoTextureD3D11_Async( TextureID_t textureId, void *pDstTexture ) {
+        printf("\n");
+        //TODO:
+        return VRRenderModelError_None;
+    }
+
+    void FreeTextureD3D11( void *pD3D11Texture2D ) {
+        printf("\n");
+        //TODO:
+    }
+
+    uint32_t GetRenderModelName( uint32_t unRenderModelIndex, VR_OUT_STRING() char *pchRenderModelName, uint32_t unRenderModelNameLen ) {
+        printf("get render model name for %d\n", unRenderModelIndex);
+        //TODO:
+        char* name = (char*) "OpenHMDModel";
+        *pchRenderModelName = *name;
+        return 0;
+    }
+
+    uint32_t GetRenderModelCount() {
+        printf("get render model count\n");
+        //TODO:
+        return 1;
+    }
+
+    virtual uint32_t GetComponentCount( const char *pchRenderModelName ) {
+        printf("get component count, 0 not supported\n");
+        //TODO:
+        return 0;
+    }
+
+    virtual uint32_t GetComponentName( const char *pchRenderModelName, uint32_t unComponentIndex, VR_OUT_STRING( ) char *pchComponentName, uint32_t unComponentNameLen ) {
+        printf("get component name for %s\n", pchRenderModelName);
+        //TODO: shouldn't happen with componentcount 0
+        return 0;
+    }
+
+    uint64_t GetComponentButtonMask( const char *pchRenderModelName, const char *pchComponentName ) {
+        printf("component button mask\n");
+        //TODO:
+
+        return 0;
+    }
+
+    uint32_t GetComponentRenderModelName( const char *pchRenderModelName, const char *pchComponentName, VR_OUT_STRING( ) char *pchComponentRenderModelName, uint32_t unComponentRenderModelNameLen ) {
+        printf("component render model name\n");
+        //TODO:
+
+        return 0;
+    }
+
+    bool GetComponentState( const char *pchRenderModelName, const char *pchComponentName, const vr::VRControllerState_t *pControllerState, const RenderModel_ControllerMode_State_t *pState, RenderModel_ComponentState_t *pComponentState ) {
+        printf("get component state\n");
+        //TODO:
+        return false;
+    }
+
+    bool RenderModelHasComponent( const char *pchRenderModelName, const char *pchComponentName ) {
+        printf("render model has component %s: %s\n", pchRenderModelName, pchComponentName);
+        //TODO:
+        return false;
+    }
+
+    uint32_t GetRenderModelThumbnailURL( const char *pchRenderModelName, VR_OUT_STRING() char *pchThumbnailURL, uint32_t unThumbnailURLLen, vr::EVRRenderModelError *peError ) {
+        printf("thumbnail for %s\n", pchRenderModelName);
+        //TODO:
+        return 0;
+    }
+
+    uint32_t GetRenderModelOriginalPath( const char *pchRenderModelName, VR_OUT_STRING() char *pchOriginalPath, uint32_t unOriginalPathLen, vr::EVRRenderModelError *peError ) {
+        printf("render model original path for %s\n", pchRenderModelName);
+        //TODO:
+        return 0;
+    }
+
+    const char *GetRenderModelErrorNameFromEnum( vr::EVRRenderModelError error ) {
+        printf("string for %d\n", error);
+        //TODO:
+        return "error" ;
+    }
+};
+
+
 void *VR_GetGenericInterface(const char *pchInterfaceVersion, EVRInitError *peError)
 {
         printf("getgenericinterface version %s \n", pchInterfaceVersion);
+
+        if (strcmp (pchInterfaceVersion, "IVRRenderModels_005") == 0) {
+            printf("IVRRenderModels_005: Rendermodels\n");
+            OpenHMDRenderModels *m_pRenderModels = new OpenHMDRenderModels();
+            return m_pRenderModels;
+
+        }
+
         *peError = VRInitError_None;
 	return nullptr;
 }
@@ -115,4 +238,3 @@ const char *VR_GetStringForHmdError( EVRInitError error )
 }
 
 }
-
