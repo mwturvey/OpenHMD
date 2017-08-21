@@ -54,6 +54,7 @@ EVRInitError VR_LoadHmdSystemInternal()
 void *VR_GetGenericInterface(const char *pchInterfaceVersion, EVRInitError *peError)
 {
         printf("getgenericinterface version %s \n", pchInterfaceVersion);
+        *peError = VRInitError_None;
 	return nullptr;
 }
 
