@@ -178,9 +178,9 @@ public:
     HmdMatrix44_t GetProjectionMatrix( EVREye eEye, float fNearZ, float fFarZ ) {
         printf("projection matrix for eye\n");
         if (eEye == EVREye::Eye_Left) {
-            printf("left");
+            printf("left\n");
         } else {
-            printf("right");
+            printf("right\n");
         }
         //TODO:
 
@@ -202,9 +202,9 @@ public:
     HmdMatrix34_t GetEyeToHeadTransform( EVREye eEye ) {
         printf("eye to head transform for eye\n");
         if (eEye == EVREye::Eye_Left) {
-            printf("left");
+            printf("left\n");
         } else {
-            printf("right");
+            printf("right\n");
         }
         //TODO:
         HmdMatrix34_t matrix;
