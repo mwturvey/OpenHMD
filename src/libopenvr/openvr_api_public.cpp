@@ -5,6 +5,7 @@
 #include "envvartools_public.h"
 #include "hmderrors_public.h"
 #include <string.h>
+#include <openhmd.h>
 
 using vr::EVRInitError;
 using vr::IVRSystem;
@@ -17,6 +18,8 @@ namespace vr
 static void *g_pVRModule = NULL;
 static IVRClientCore *g_pHmdSystem = NULL;
 
+ohmd_context* ctx;
+ohmd_device* hmd;
 
 typedef void* (*VRClientCoreFactoryFn)(const char *pInterfaceName, int *pReturnCode);
 
@@ -32,9 +35,78 @@ EVRInitError VR_LoadHmdSystemInternal();
 void CleanupInternalInterfaces();
 
 
+// gets float values from the device and prints them
+void print_infof(ohmd_device* hmd, const char* name, int len, ohmd_float_value val)
+{
+    float f[len];
+    ohmd_device_getf(hmd, val, f);
+    printf("%-25s", name);
+    for(int i = 0; i < len; i++)
+        printf("%f ", f[i]);
+    printf("\n");
+}
+
+// gets int values from the device and prints them
+void print_infoi(ohmd_device* hmd, const char* name, int len, ohmd_int_value val)
+{
+    int iv[len];
+    ohmd_device_geti(hmd, val, iv);
+    printf("%-25s", name);
+    for(int i = 0; i < len; i++)
+        printf("%d ", iv[i]);
+    printf("\n");
+}
+
 uint32_t VR_InitInternal( EVRInitError *peError, vr::EVRApplicationType eApplicationType )
 {
-        printf("pretending to initinternal\n");
+        printf("initinternal create openhmd context\n");
+        ctx = ohmd_ctx_create();
+
+        // Probe for devices
+        int num_devices = ohmd_ctx_probe(ctx);
+        if(num_devices < 0){
+            printf("failed to probe devices: %s\n", ohmd_ctx_get_error(ctx));
+            *peError = VRInitError_Driver_Failed;
+            return -1;
+        }
+
+        printf("num devices: %d\n\n", num_devices);
+
+        // Print device information
+        for(int i = 0; i < num_devices; i++){
+            printf("device %d\n", i);
+            printf("  vendor:  %s\n", ohmd_list_gets(ctx, i, OHMD_VENDOR));
+            printf("  product: %s\n", ohmd_list_gets(ctx, i, OHMD_PRODUCT));
+            printf("  path:    %s\n\n", ohmd_list_gets(ctx, i, OHMD_PATH));
+        }
+
+        // Open default device (0)
+        hmd = ohmd_list_open_device(ctx, 0);
+
+        if(!hmd){
+            printf("failed to open device: %s\n", ohmd_ctx_get_error(ctx));
+            *peError = VRInitError_Driver_Failed;
+            return -1;
+        }
+
+        // Print hardware information for the opened device
+        int ivals[2];
+        ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, ivals);
+        ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, ivals + 1);
+        printf("resolution:              %i x %i\n", ivals[0], ivals[1]);
+
+        print_infof(hmd, "hsize:",            1, OHMD_SCREEN_HORIZONTAL_SIZE);
+        print_infof(hmd, "vsize:",            1, OHMD_SCREEN_VERTICAL_SIZE);
+        print_infof(hmd, "lens separation:",  1, OHMD_LENS_HORIZONTAL_SEPARATION);
+        print_infof(hmd, "lens vcenter:",     1, OHMD_LENS_VERTICAL_POSITION);
+        print_infof(hmd, "left eye fov:",     1, OHMD_LEFT_EYE_FOV);
+        print_infof(hmd, "right eye fov:",    1, OHMD_RIGHT_EYE_FOV);
+        print_infof(hmd, "left eye aspect:",  1, OHMD_LEFT_EYE_ASPECT_RATIO);
+        print_infof(hmd, "right eye aspect:", 1, OHMD_RIGHT_EYE_ASPECT_RATIO);
+        print_infof(hmd, "distortion k:",     6, OHMD_DISTORTION_K);
+
+        print_infoi(hmd, "digital button count:", 1, OHMD_BUTTON_COUNT);
+
         *peError = VRInitError_None;
 	return ++g_nVRToken;
 }
@@ -344,7 +416,23 @@ public:
     }
 
     uint32_t GetStringTrackedDeviceProperty( vr::TrackedDeviceIndex_t unDeviceIndex, ETrackedDeviceProperty prop, VR_OUT_STRING() char *pchValue, uint32_t unBufferSize, ETrackedPropertyError *pError = 0L ) {
-        return 0;
+        const char *str = [&]{
+            if (prop == Prop_TrackingSystemName_String)  {
+                return ohmd_list_gets(ctx, 0, OHMD_PRODUCT);
+            } else if (prop == Prop_SerialNumber_String) {
+                return ohmd_list_gets(ctx, 0, OHMD_PRODUCT);
+            } else {
+                return ohmd_list_gets(ctx, 0, OHMD_PRODUCT);
+            }
+        }();
+
+        if (unBufferSize == 0) {
+            return strlen(str) + 1;
+        } else {
+            printf("get prop %d for %d: %s (%d)\n", prop, unDeviceIndex, str, strlen(str) + 1);
+            strncpy(pchValue, str, strlen(str) + 1);
+        }
+        return sizeof("OpenHMD Test Display");
     }
 
     const char *GetPropErrorNameFromEnum( ETrackedPropertyError error ) {
