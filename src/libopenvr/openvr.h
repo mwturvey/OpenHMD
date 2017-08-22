@@ -3706,7 +3706,6 @@ namespace vr
 			if ( VR_IsInterfaceVersionValid( IVRSystem_Version ) )
 			{
 				pVRSystem = VRSystem();
-                                printf("got pvrsystem %p\n", pVRSystem);
 			}
 			else
 			{

@@ -33,3 +33,4 @@ target_link_libraries(hellovr_opengl
   ${EXTRA_LIBS}
   dl
 )
+install (FILES cube_texture.png DESTINATION ${CMAKE_BINARY_DIR}) #TODO

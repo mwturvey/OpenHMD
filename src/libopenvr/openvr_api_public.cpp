@@ -15,6 +15,8 @@ using vr::VRInitError_None;
 namespace vr
 {
 
+bool fulldbg = false;
+
 static void *g_pVRModule = NULL;
 static IVRClientCore *g_pHmdSystem = NULL;
 
@@ -27,8 +29,8 @@ static uint32_t g_nVRToken = 0;
 
 uint32_t VR_GetInitToken()
 {
-        printf("inittoken requested\n");
-	return g_nVRToken;
+    if (fulldbg) printf("inittoken requested\n");
+    return g_nVRToken;
 }
 
 EVRInitError VR_LoadHmdSystemInternal();
@@ -241,14 +243,18 @@ class OpenHMDIVRSystem : IVRSystem
 {
 public:
     void GetRecommendedRenderTargetSize( uint32_t *pnWidth, uint32_t *pnHeight ) {
-        printf("recommended render target size\n");
         //TODO:
-        *pnWidth = 800;
-        *pnHeight = 600;
+        int w;
+        int h;
+        ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, &w);
+        ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, &h);
+        *pnWidth = w;
+        *pnHeight = h;
+        printf("recommended render target size: %dx%d\n", *pnWidth, *pnHeight);
     }
 
     HmdMatrix44_t GetProjectionMatrix( EVREye eEye, float fNearZ, float fFarZ ) {
-        printf("projection matrix for eye\n");
+        printf("projection matrix for eye: ");
         if (eEye == EVREye::Eye_Left) {
             printf("left\n");
         } else {
@@ -257,6 +263,10 @@ public:
         //TODO:
 
         HmdMatrix44_t matrix;
+        matrix.m[0][0] = 1;
+        matrix.m[1][1] = 1;
+        matrix.m[2][2] = 1;
+        matrix.m[3][3] = 1;
         return matrix;
     }
 
@@ -272,7 +282,7 @@ public:
     }
 
     HmdMatrix34_t GetEyeToHeadTransform( EVREye eEye ) {
-        printf("eye to head transform for eye\n");
+        printf("eye to head transform for eye: ");
         if (eEye == EVREye::Eye_Left) {
             printf("left\n");
         } else {
@@ -348,7 +358,12 @@ public:
     }
 
     EDeviceActivityLevel GetTrackedDeviceActivityLevel( vr::TrackedDeviceIndex_t unDeviceId ) {
-        printf("tracked device activity for %d\n", unDeviceId);
+        printf("tracked device activity for %d: ", unDeviceId);
+        if (unDeviceId == 0) {
+            printf("hmd active\n");
+            return EDeviceActivityLevel::k_EDeviceActivityLevel_UserInteraction;
+        }
+        printf("tracked device idle\n");
         //TODO:
         return EDeviceActivityLevel::k_EDeviceActivityLevel_Unknown;
     }
@@ -379,13 +394,23 @@ public:
     }
 
     ETrackedDeviceClass GetTrackedDeviceClass( vr::TrackedDeviceIndex_t unDeviceIndex ) {
-        printf("get device class for %d\n", unDeviceIndex);
-        //TODO:
-        return ETrackedDeviceClass::TrackedDeviceClass_Invalid;
+        printf("get device class for %d: ", unDeviceIndex);
+        if (unDeviceIndex == 0) {
+            printf("HMD\n");
+            return ETrackedDeviceClass::TrackedDeviceClass_HMD;
+        } else {
+            printf("invalid\n");
+            //TODO:
+            return ETrackedDeviceClass::TrackedDeviceClass_Invalid;
+        }
     }
 
     bool IsTrackedDeviceConnected( vr::TrackedDeviceIndex_t unDeviceIndex ) {
-        printf("is device connected %d\n", unDeviceIndex);
+        if (fulldbg) printf("is device connected %d\n", unDeviceIndex);
+        if (unDeviceIndex == 0) {
+            printf("hmd connected\n");
+            return true;
+        }
         //TODO:
         return false;
     }
@@ -418,18 +443,19 @@ public:
     uint32_t GetStringTrackedDeviceProperty( vr::TrackedDeviceIndex_t unDeviceIndex, ETrackedDeviceProperty prop, VR_OUT_STRING() char *pchValue, uint32_t unBufferSize, ETrackedPropertyError *pError = 0L ) {
         const char *str = [&]{
             if (prop == Prop_TrackingSystemName_String)  {
-                return ohmd_list_gets(ctx, 0, OHMD_PRODUCT);
+                return "OpenHMD";
             } else if (prop == Prop_SerialNumber_String) {
                 return ohmd_list_gets(ctx, 0, OHMD_PRODUCT);
             } else {
-                return ohmd_list_gets(ctx, 0, OHMD_PRODUCT);
+                printf("requested not implemented %d prop\n", prop);
+                return "Not implemented";
             }
         }();
 
         if (unBufferSize == 0) {
             return strlen(str) + 1;
         } else {
-            printf("get prop %d for %d: %s (%d)\n", prop, unDeviceIndex, str, strlen(str) + 1);
+            printf("get prop %d for %d: %s (%lu)\n", prop, unDeviceIndex, str, strlen(str) + 1);
             strncpy(pchValue, str, strlen(str) + 1);
         }
         return sizeof("OpenHMD Test Display");
@@ -466,8 +492,12 @@ public:
     }
 
     bool GetControllerState( vr::TrackedDeviceIndex_t unControllerDeviceIndex, vr::VRControllerState_t *pControllerState, uint32_t unControllerStateSize ) {
-        //printf("\n");
+        if (fulldbg) printf("get controller state for %d\n", unControllerDeviceIndex);
         //TODO:
+        if (unControllerDeviceIndex == 0) {
+            pControllerState->unPacketNum++; //TODO
+            return true;
+        }
 
         return false;
     }
@@ -508,7 +538,7 @@ public:
     }
 
     bool IsInputFocusCapturedByAnotherProcess() {
-        printf("is input focus captured by other process?\n");
+        if (fulldbg) printf("is input focus captured by other process?\n");
         //TODO:
         return false;
     }
@@ -552,8 +582,11 @@ public:
 
 	EVRCompositorError WaitGetPoses( VR_ARRAY_COUNT(unRenderPoseArrayCount) TrackedDevicePose_t* pRenderPoseArray, uint32_t unRenderPoseArrayCount,
 		VR_ARRAY_COUNT(unGamePoseArrayCount) TrackedDevicePose_t* pGamePoseArray, uint32_t unGamePoseArrayCount ){
-            printf("wait get poses\n");
+            printf("wait get poses for %d/%d tracked devices\n", unRenderPoseArrayCount, unGamePoseArrayCount);
+
             //TODO:
+            pRenderPoseArray[0].bPoseIsValid = true;
+            pRenderPoseArray[0].eTrackingResult = ETrackingResult::TrackingResult_Running_OK;
             return VRCompositorError_None;
         }
 
@@ -759,24 +792,21 @@ public:
 
 void *VR_GetGenericInterface(const char *pchInterfaceVersion, EVRInitError *peError)
 {
-        printf("getgenericinterface version %s \n", pchInterfaceVersion);
+        printf("Creating OpenHMD impl of interface: %s \n", pchInterfaceVersion);
 
         if (strcmp (pchInterfaceVersion, "IVRSystem_016") == 0) {
-            printf("creating openhmd object for generic interface: IVRSystem_016\n");
-            OpenHMDIVRSystem *m_pRenderModels = new OpenHMDIVRSystem();
-            return m_pRenderModels;
+            OpenHMDIVRSystem *ivrsystem = new OpenHMDIVRSystem();
+            return ivrsystem;
         }
 
         if (strcmp (pchInterfaceVersion, "IVRRenderModels_005") == 0) {
-            printf("creating openhmd object for generic interface: IVRRenderModels_005: Rendermodels\n");
-            OpenHMDRenderModels *m_pRenderModels = new OpenHMDRenderModels();
-            return m_pRenderModels;
+            OpenHMDRenderModels *ivrrenderModels = new OpenHMDRenderModels();
+            return ivrrenderModels;
         }
 
         if (strcmp (pchInterfaceVersion, "IVRCompositor_020") == 0) {
-            printf("creating openhmd object for generic interface: IVRCompositor_020\n");
-            OpenHMDCompositor *m_pRenderModels = new OpenHMDCompositor();
-            return m_pRenderModels;
+            OpenHMDCompositor *ivrcompositor= new OpenHMDCompositor();
+            return ivrcompositor;
         }
 
         *peError = VRInitError_None;
@@ -785,7 +815,7 @@ void *VR_GetGenericInterface(const char *pchInterfaceVersion, EVRInitError *peEr
 
 bool VR_IsInterfaceVersionValid(const char *pchInterfaceVersion)
 {
-        printf("interfaceversion %s is valid requested, confirming..\n", pchInterfaceVersion);
+        if (fulldbg) printf("interfaceversion %s is valid requested, confirming..\n", pchInterfaceVersion);
 	return true;
 }
 

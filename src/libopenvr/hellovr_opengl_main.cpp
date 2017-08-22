@@ -951,7 +951,7 @@ bool CMainApplication::CreateAllShaders()
 bool CMainApplication::SetupTexturemaps()
 {
 	std::string sExecutableDirectory = Path_StripFilename( Path_GetExecutablePath() );
-	std::string strFullPath = Path_MakeAbsolute( "../cube_texture.png", sExecutableDirectory );
+	std::string strFullPath = Path_MakeAbsolute( "./cube_texture.png", sExecutableDirectory );
 	
 	std::vector<unsigned char> imageRGBA;
 	unsigned nImageWidth, nImageHeight;
