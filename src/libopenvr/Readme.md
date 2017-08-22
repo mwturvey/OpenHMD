@@ -1,4 +1,4 @@
-==What is this==
+=== What is this ===
 
 The aim is to implement libopenvr_api.dll/libopenvr_api.so on top of OpenHMD.
 
@@ -8,12 +8,14 @@ Valve's libopenvr_api is just a wrapper around their proprietary and x86-only St
 
 Once this library is finished, the libopenvr_api shipped in any SteamVR application or game can be swapped out and the application can be used with only the OpenHMD drivers, Steam and SteamVR are not needed.
 
-==Status==
+=== Status ===
 
 Basically just stubs that allows a SteamVR application to run, but doesn't actually do anything.
 
 If you want to hack on it: Just build this OpenHMD branch with cmake and by default it will build OpenHMD/src/libopenvr/libopenvr_api.so.
 
-For easy testing OpenHMD/src/libopenvr/hellovr_opengl id built and linked to the libopenvr_api.so library in the same directory - no need to install anything. Start ./hellovr_opengl, watch the output and implement the relevant functions in the skeleton classes in openvr_api_public.cpp.
+For easy testing OpenHMD/src/libopenvr/hellovr_opengl is built and linked to the libopenvr_api.so library in the same directory - no need to install anything. Start ./hellovr_opengl, watch the output and implement the relevant functions in the skeleton classes in openvr_api_public.cpp.
 
 There are three big classes: IVRSystem, IVRRenderModels and IVRCompositor. Currently none of them do much and are stubbed just enough to report values that hellovr_opengl needs to not crash.
+
+There's a lot of trash source code copied from the openvr repository in this branch. It's just there to get off the ground. Eventually most of it will be deleted.
