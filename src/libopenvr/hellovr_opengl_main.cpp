@@ -405,7 +405,6 @@ bool CMainApplication::BInit()
 		return false;
 	}
 
-	glewExperimental = GL_TRUE;
 	GLenum nGlewError = glewInit();
 	if (nGlewError != GLEW_OK)
 	{
