@@ -670,7 +670,7 @@ public:
             ohmd_device_getf(hmd, OHMD_ROTATION_QUAT, quat);
             if (fulldbg) printf("ohmd rotation quat %f %f %f %f\n", quat[0], quat[1], quat[2], quat[3]);
 
-            glm::quat rotation(quat[0], quat[1], quat[2], quat[3]);
+            glm::quat rotation(quat[3], quat[0], quat[1], quat[2]);
             glm::mat3 m = glm::mat3_cast(rotation);
 
             pRenderPoseArray[0].mDeviceToAbsoluteTracking.m[0][0] = m[0][0];
