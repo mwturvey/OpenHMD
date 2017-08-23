@@ -7,6 +7,9 @@
 #include <string.h>
 #include <openhmd.h>
 
+//for the compositor
+#include <SDL.h>
+
 using vr::EVRInitError;
 using vr::IVRSystem;
 using vr::IVRClientCore;
@@ -566,9 +569,51 @@ public:
     }
 };
 
+void checkSDLError(int line = -1)
+{
+    const char *error = SDL_GetError();
+    if (*error != '\0')
+    {
+        printf("SDL Error: %s\n", error);
+        if (line != -1)
+            printf(" + line: %i\n", line);
+        SDL_ClearError();
+    }
+}
+
 class OpenHMDCompositor : IVRCompositor
 {
+private:
+    SDL_Window *window;
+    SDL_GLContext maincontext;
+    SDL_Renderer *renderer;
+    int w;
+    int h;
 public:
+        OpenHMDCompositor() {
+            SDL_Init(SDL_INIT_VIDEO);
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+
+
+            ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, &w);
+            ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, &h);
+
+            uint32_t windowflags = SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN;
+            // don't show window until we have something working to show
+            //window = SDL_CreateWindow("libopenVR Compositor (OpenHMD)", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, windowflags);
+            if (window == NULL) {
+                printf("Could not create window: %s\n", SDL_GetError());
+            }
+
+            //TODO: manage OpenGL contexts
+            //maincontext = SDL_GL_CreateContext(window);
+            //renderer = SDL_CreateRenderer( window, -1, SDL_RENDERER_ACCELERATED);
+
+
+            checkSDLError(__LINE__);
+        }
+
 	void SetTrackingSpace( ETrackingUniverseOrigin eOrigin ) {
             printf("set tracking space\n");
             //TODO:
@@ -604,8 +649,30 @@ public:
         }
 
 	EVRCompositorError Submit( EVREye eEye, const Texture_t *pTexture, const VRTextureBounds_t* pBounds = 0, EVRSubmitFlags nSubmitFlags = Submit_Default ) {
-            printf("submit frame\n");
+            printf("submit frame - ");
+            if (pTexture->eType == ETextureType::TextureType_OpenGL) {
+                printf("OpenGL\n");
+            } else {
+                printf(" unsupported texture type. Use OpenGL!\n");
+                return VRCompositorError_IncompatibleVersion; //whatever
+            }
+
+
             //TODO:
+
+            /*
+            SDL_Surface *TextureImage = SDL_LoadBMP( "placeholder.bmp" );
+            SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, TextureImage);
+
+            SDL_RenderClear(renderer);
+            SDL_Rect texture_rect;
+            texture_rect.x = 0;
+            texture_rect.y = 0;
+            texture_rect.w = w/2;
+            texture_rect.h = h;
+            SDL_RenderCopy(renderer, texture, NULL, &texture_rect);
+            SDL_RenderPresent(renderer);
+            */
             return VRCompositorError_None;
         }
 
@@ -691,6 +758,8 @@ public:
 
 	void CompositorQuit() {
             printf("compositor quit\n");
+            SDL_DestroyWindow(window);
+            SDL_Quit();
         }
 
 	bool IsFullscreen() {
