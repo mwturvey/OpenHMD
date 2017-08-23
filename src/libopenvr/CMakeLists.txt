@@ -9,7 +9,7 @@ set(openvr_source_files
 )
 add_library(openvr_api SHARED ${openvr_source_files})
 target_link_libraries(openvr_api PRIVATE openhmd-shared m ${SDL2_LIBRARY})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_DIR}/)
+#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_DIR}/)
 
 find_package(SDL2 REQUIRED)
 find_package(OpenGL REQUIRED)
@@ -33,4 +33,4 @@ target_link_libraries(hellovr_opengl
   ${EXTRA_LIBS}
   dl
 )
-install (FILES cube_texture.png DESTINATION ${CMAKE_BINARY_DIR}) #TODO
+configure_file(cube_texture.png ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)

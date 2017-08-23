@@ -7,10 +7,16 @@
 #include <string.h>
 #include <openhmd.h>
 
+#include <iostream>
+
 //for the compositor
 #include <SDL.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 
 using vr::EVRInitError;
 using vr::IVRSystem;
@@ -120,7 +126,8 @@ uint32_t VR_InitInternal( EVRInitError *peError, vr::EVRApplicationType eApplica
 
 void VR_ShutdownInternal()
 {
-        printf("pretending to shutdowninternal\n");
+        printf("shutdowninternal, destroy OpenHMD context\n");
+        ohmd_ctx_destroy(ctx);
 	++g_nVRToken;
 }
 
@@ -265,13 +272,32 @@ public:
         } else {
             printf("right\n");
         }
+
         //TODO:
+        glm::mat4 Projection = glm::mat4(1.0);
+        //std::cout << glm::to_string(Projection) << std::endl;
 
         HmdMatrix44_t matrix;
-        matrix.m[0][0] = 1;
-        matrix.m[1][1] = 1;
-        matrix.m[2][2] = 1;
-        matrix.m[3][3] = 1;
+        matrix.m[0][0] = Projection[0][0];
+        matrix.m[0][1] = Projection[0][1];
+        matrix.m[0][2] = Projection[0][2];
+        matrix.m[0][3] = Projection[0][3];
+
+        matrix.m[1][0] = Projection[1][0];
+        matrix.m[1][1] = Projection[1][1];
+        matrix.m[1][2] = Projection[1][2];
+        matrix.m[1][3] = Projection[1][3];
+
+        matrix.m[2][0] = Projection[2][0];
+        matrix.m[2][1] = Projection[2][1];
+        matrix.m[2][2] = Projection[2][2];
+        matrix.m[2][3] = Projection[2][3];
+
+        matrix.m[3][0] = Projection[3][0];
+        matrix.m[3][1] = Projection[3][1];
+        matrix.m[3][2] = Projection[3][2];
+        matrix.m[3][3] = Projection[3][3];
+
         return matrix;
     }
 
@@ -642,7 +668,7 @@ public:
 
             float quat[4];
             ohmd_device_getf(hmd, OHMD_ROTATION_QUAT, quat);
-            if (fulldbg) printf("ohmd rotation quat %f %f %f %f", quat[0], quat[1], quat[2], quat[3]);
+            if (fulldbg) printf("ohmd rotation quat %f %f %f %f\n", quat[0], quat[1], quat[2], quat[3]);
 
             glm::quat rotation(quat[0], quat[1], quat[2], quat[3]);
             glm::mat3 m = glm::mat3_cast(rotation);
