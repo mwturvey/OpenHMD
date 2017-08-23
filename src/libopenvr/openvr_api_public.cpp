@@ -9,6 +9,8 @@
 
 //for the compositor
 #include <SDL.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 using vr::EVRInitError;
 using vr::IVRSystem;
@@ -584,7 +586,7 @@ void checkSDLError(int line = -1)
 class OpenHMDCompositor : IVRCompositor
 {
 private:
-    SDL_Window *window;
+    SDL_Window *window = NULL;
     SDL_GLContext maincontext;
     SDL_Renderer *renderer;
     int w;
@@ -631,7 +633,35 @@ public:
 
             //TODO:
             pRenderPoseArray[0].bPoseIsValid = true;
+
+            ohmd_ctx_update(ctx);
+            float zero[] = {.0, .1, .2, 1};
+
+            ohmd_device_setf(hmd, OHMD_ROTATION_QUAT, zero);
+            ohmd_device_setf(hmd, OHMD_POSITION_VECTOR, zero);
+
+            float quat[4];
+            ohmd_device_getf(hmd, OHMD_ROTATION_QUAT, quat);
+            if (fulldbg) printf("ohmd rotation quat %f %f %f %f", quat[0], quat[1], quat[2], quat[3]);
+
+            glm::quat rotation(quat[0], quat[1], quat[2], quat[3]);
+            glm::mat3 m = glm::mat3_cast(rotation);
+
+            pRenderPoseArray[0].mDeviceToAbsoluteTracking.m[0][0] = m[0][0];
+            pRenderPoseArray[0].mDeviceToAbsoluteTracking.m[0][1] = m[0][1];
+            pRenderPoseArray[0].mDeviceToAbsoluteTracking.m[0][2] = m[0][2];
+
+            pRenderPoseArray[0].mDeviceToAbsoluteTracking.m[1][0] = m[1][0];
+            pRenderPoseArray[0].mDeviceToAbsoluteTracking.m[1][1] = m[1][1];
+            pRenderPoseArray[0].mDeviceToAbsoluteTracking.m[1][2] = m[1][2];
+
+            pRenderPoseArray[0].mDeviceToAbsoluteTracking.m[2][0] = m[2][0];
+            pRenderPoseArray[0].mDeviceToAbsoluteTracking.m[2][1] = m[2][1];
+            pRenderPoseArray[0].mDeviceToAbsoluteTracking.m[2][2] = m[2][2];
+
+
             pRenderPoseArray[0].eTrackingResult = ETrackingResult::TrackingResult_Running_OK;
+
             return VRCompositorError_None;
         }
 
