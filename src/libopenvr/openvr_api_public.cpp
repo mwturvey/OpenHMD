@@ -1,8 +1,6 @@
 //========= Copyright Valve Corporation ============//
 #define VR_API_EXPORT 1
 #include "openvr.h"
-#include "ivrclientcore.h"
-#include "envvartools_public.h"
 #include "hmderrors_public.h"
 #include <string.h>
 #include <openhmd.h>
@@ -22,7 +20,6 @@
 
 using vr::EVRInitError;
 using vr::IVRSystem;
-using vr::IVRClientCore;
 using vr::VRInitError_None;
 
 namespace vr
@@ -31,7 +28,6 @@ namespace vr
 bool fulldbg = false;
 
 static void *g_pVRModule = NULL;
-static IVRClientCore *g_pHmdSystem = NULL;
 
 ohmd_context* ctx;
 ohmd_device* hmd;
@@ -1156,9 +1152,6 @@ const char *VR_RuntimePath()
 /** Returns the symbol version of an HMD error. */
 const char *VR_GetVRInitErrorAsSymbol( EVRInitError error )
 {
-	if( g_pHmdSystem )
-		return g_pHmdSystem->GetIDForVRInitError( error );
-	else
 		return GetIDForVRInitError( error );
 }
 
@@ -1166,9 +1159,7 @@ const char *VR_GetVRInitErrorAsSymbol( EVRInitError error )
 /** Returns the english string version of an HMD error. */
 const char *VR_GetVRInitErrorAsEnglishDescription( EVRInitError error )
 {
-	if ( g_pHmdSystem )
-		return g_pHmdSystem->GetEnglishStringForHmdError( error );
-	else
+
 		return GetEnglishStringForHmdError( error );
 }
 
