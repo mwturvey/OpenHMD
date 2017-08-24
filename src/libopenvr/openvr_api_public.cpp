@@ -87,16 +87,15 @@ uint32_t VR_InitInternal( EVRInitError *peError, vr::EVRApplicationType eApplica
 
         printf("num devices: %d\n\n", num_devices);
 
-        // Print device information
-        for(int i = 0; i < num_devices; i++){
+        // Print device information for default device (change i < num_devices for all)
+        for(int i = 0; i < 1; i++){
             printf("device %d\n", i);
             printf("  vendor:  %s\n", ohmd_list_gets(ctx, i, OHMD_VENDOR));
             printf("  product: %s\n", ohmd_list_gets(ctx, i, OHMD_PRODUCT));
             printf("  path:    %s\n\n", ohmd_list_gets(ctx, i, OHMD_PATH));
         }
 
-        // Open default device (0)
-        hmd = ohmd_list_open_device(ctx, 0);
+        hmd = ohmd_list_open_device(ctx, 0); // default device (0)
 
         if(!hmd){
             printf("failed to open device: %s\n", ohmd_ctx_get_error(ctx));
@@ -110,17 +109,19 @@ uint32_t VR_InitInternal( EVRInitError *peError, vr::EVRApplicationType eApplica
         ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, ivals + 1);
         printf("resolution:              %i x %i\n", ivals[0], ivals[1]);
 
-        print_infof(hmd, "hsize:",            1, OHMD_SCREEN_HORIZONTAL_SIZE);
-        print_infof(hmd, "vsize:",            1, OHMD_SCREEN_VERTICAL_SIZE);
-        print_infof(hmd, "lens separation:",  1, OHMD_LENS_HORIZONTAL_SEPARATION);
-        print_infof(hmd, "lens vcenter:",     1, OHMD_LENS_VERTICAL_POSITION);
-        print_infof(hmd, "left eye fov:",     1, OHMD_LEFT_EYE_FOV);
-        print_infof(hmd, "right eye fov:",    1, OHMD_RIGHT_EYE_FOV);
-        print_infof(hmd, "left eye aspect:",  1, OHMD_LEFT_EYE_ASPECT_RATIO);
-        print_infof(hmd, "right eye aspect:", 1, OHMD_RIGHT_EYE_ASPECT_RATIO);
-        print_infof(hmd, "distortion k:",     6, OHMD_DISTORTION_K);
+        if (fulldbg) {
+            print_infof(hmd, "hsize:",            1, OHMD_SCREEN_HORIZONTAL_SIZE);
+            print_infof(hmd, "vsize:",            1, OHMD_SCREEN_VERTICAL_SIZE);
+            print_infof(hmd, "lens separation:",  1, OHMD_LENS_HORIZONTAL_SEPARATION);
+            print_infof(hmd, "lens vcenter:",     1, OHMD_LENS_VERTICAL_POSITION);
+            print_infof(hmd, "left eye fov:",     1, OHMD_LEFT_EYE_FOV);
+            print_infof(hmd, "right eye fov:",    1, OHMD_RIGHT_EYE_FOV);
+            print_infof(hmd, "left eye aspect:",  1, OHMD_LEFT_EYE_ASPECT_RATIO);
+            print_infof(hmd, "right eye aspect:", 1, OHMD_RIGHT_EYE_ASPECT_RATIO);
+            print_infof(hmd, "distortion k:",     6, OHMD_DISTORTION_K);
 
-        print_infoi(hmd, "digital button count:", 1, OHMD_BUTTON_COUNT);
+            print_infoi(hmd, "digital button count:", 1, OHMD_BUTTON_COUNT);
+        }
 
         *peError = VRInitError_None;
 	return ++g_nVRToken;
@@ -806,7 +807,7 @@ public:
 
 	EVRCompositorError WaitGetPoses( VR_ARRAY_COUNT(unRenderPoseArrayCount) TrackedDevicePose_t* pRenderPoseArray, uint32_t unRenderPoseArrayCount,
 		VR_ARRAY_COUNT(unGamePoseArrayCount) TrackedDevicePose_t* pGamePoseArray, uint32_t unGamePoseArrayCount ){
-            printf("wait get poses for %d/%d tracked devices\n", unRenderPoseArrayCount, unGamePoseArrayCount);
+            if (fulldbg) printf("wait get poses for %d/%d tracked devices\n", unRenderPoseArrayCount, unGamePoseArrayCount);
 
             //TODO:
             pRenderPoseArray[0].bPoseIsValid = true;
@@ -857,14 +858,16 @@ public:
         }
 
 	EVRCompositorError Submit( EVREye eEye, const Texture_t *pTexture, const VRTextureBounds_t* pBounds = 0, EVRSubmitFlags nSubmitFlags = Submit_Default ) {
-            printf("submit frame - ");
-            if (pTexture->eType == ETextureType::TextureType_OpenGL) {
-                printf("OpenGL\n");
-            } else {
-                printf(" unsupported texture type. Use OpenGL!\n");
-                return VRCompositorError_IncompatibleVersion; //whatever
+            if (fulldbg) {
+                printf("submit frame - ");
+                if (pTexture->eType == ETextureType::TextureType_OpenGL) {
+                    printf("OpenGL - ");
+                    printf(eEye == EVREye::Eye_Left ? "left\n" : "right\n");
+                } else {
+                    printf(" unsupported texture type. Use OpenGL!\n");
+                    return VRCompositorError_IncompatibleVersion; //whatever
+                }
             }
-
 
             //printf("texture pointer %p  ", pTexture->handle);
             uintptr_t handle = reinterpret_cast<uintptr_t>(pTexture->handle);
