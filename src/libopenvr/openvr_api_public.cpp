@@ -81,6 +81,7 @@ uint32_t VR_InitInternal( EVRInitError *peError, vr::EVRApplicationType eApplica
         if(num_devices < 0){
             printf("failed to probe devices: %s\n", ohmd_ctx_get_error(ctx));
             *peError = VRInitError_Driver_Failed;
+            ohmd_ctx_destroy(ctx);
             return -1;
         }
 
@@ -99,6 +100,7 @@ uint32_t VR_InitInternal( EVRInitError *peError, vr::EVRApplicationType eApplica
         if(!hmd){
             printf("failed to open device: %s\n", ohmd_ctx_get_error(ctx));
             *peError = VRInitError_Driver_Failed;
+            ohmd_ctx_destroy(ctx);
             return -1;
         }
 
@@ -138,7 +140,6 @@ EVRInitError VR_LoadHmdSystemInternal()
         printf("pretending to load hmdsysteminternal...\n");
 	return VRInitError_None;
 }
-
 
 class OpenHMDRenderModels : vr::IVRRenderModels {
     EVRRenderModelError LoadRenderModel_Async( const char *pchRenderModelName, RenderModel_t **ppRenderModel ) {
@@ -1101,27 +1102,375 @@ public:
         }
 };
 
+
+class OpenHMDOverlay : IVROverlay
+{
+public:
+
+    EVROverlayError FindOverlay( const char *pchOverlayKey, VROverlayHandle_t * pOverlayHandle ) {
+        printf("FindOverlay\n");
+        return EVROverlayError::VROverlayError_RequestFailed;
+    }
+
+    EVROverlayError CreateOverlay( const char *pchOverlayKey, const char *pchOverlayName, VROverlayHandle_t * pOverlayHandle ) {
+        printf("CreateOverLay\n");
+        return EVROverlayError::VROverlayError_None;
+    }
+
+    EVROverlayError DestroyOverlay( VROverlayHandle_t ulOverlayHandle ) {
+        printf("DestroyOverlay\n");
+        return EVROverlayError::VROverlayError_None;
+    }
+
+    EVROverlayError SetHighQualityOverlay( VROverlayHandle_t ulOverlayHandle ) {
+        printf("SetHighQualityOverlay\n");
+        return VROverlayError_None;
+    }
+
+
+    vr::VROverlayHandle_t GetHighQualityOverlay() {
+        printf("GetHighQualityOverlay\n");
+        return k_ulOverlayHandleInvalid;
+    }
+
+    uint32_t GetOverlayKey( VROverlayHandle_t ulOverlayHandle, VR_OUT_STRING() char *pchValue, uint32_t unBufferSize, EVROverlayError *pError = 0L ) {
+        printf("GetOverlayKey\n");
+        return 0;
+    }
+
+    uint32_t GetOverlayName( VROverlayHandle_t ulOverlayHandle, VR_OUT_STRING() char *pchValue, uint32_t unBufferSize, EVROverlayError *pError = 0L ) {
+        printf("GetOverlayName\n");
+        return 0;
+    }
+
+    EVROverlayError SetOverlayName( VROverlayHandle_t ulOverlayHandle, const char *pchName ) {
+        printf("SetOverlayName\n");
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayImageData( VROverlayHandle_t ulOverlayHandle, void *pvBuffer, uint32_t unBufferSize, uint32_t *punWidth, uint32_t *punHeight ) {
+        printf("GetOverlayImageData\n");
+        return VROverlayError_None;
+    }
+
+    const char *GetOverlayErrorNameFromEnum( EVROverlayError error ) {
+        printf("GetOverlayErrorNameFromEnum\n");
+        return "Foobar";
+    }
+
+    EVROverlayError SetOverlayRenderingPid( VROverlayHandle_t ulOverlayHandle, uint32_t unPID ) {
+        printf("SetOverlayRenderingPid\n");
+        return VROverlayError_None;
+    }
+
+    uint32_t GetOverlayRenderingPid( VROverlayHandle_t ulOverlayHandle ) {
+        printf("GetOverlayRenderingPid\n");
+        return 0;
+    }
+
+    EVROverlayError SetOverlayFlag( VROverlayHandle_t ulOverlayHandle, VROverlayFlags eOverlayFlag, bool bEnabled ) {
+        printf("SetOverlayFlag\n");
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayFlag( VROverlayHandle_t ulOverlayHandle, VROverlayFlags eOverlayFlag, bool *pbEnabled ) {
+        printf("GetOverlayFlag\n");
+        return VROverlayError_None;
+    }
+
+    EVROverlayError SetOverlayColor( VROverlayHandle_t ulOverlayHandle, float fRed, float fGreen, float fBlue ) {
+        printf("SetOverlayColor\n");
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayColor( VROverlayHandle_t ulOverlayHandle, float *pfRed, float *pfGreen, float *pfBlue ) {
+        printf("GetOverlayColor\n");
+        return VROverlayError_None;
+    }
+
+    EVROverlayError SetOverlayAlpha( VROverlayHandle_t ulOverlayHandle, float fAlpha ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayAlpha( VROverlayHandle_t ulOverlayHandle, float *pfAlpha ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError SetOverlayTexelAspect( VROverlayHandle_t ulOverlayHandle, float fTexelAspect ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayTexelAspect( VROverlayHandle_t ulOverlayHandle, float *pfTexelAspect ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError SetOverlaySortOrder( VROverlayHandle_t ulOverlayHandle, uint32_t unSortOrder ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlaySortOrder( VROverlayHandle_t ulOverlayHandle, uint32_t *punSortOrder ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError SetOverlayWidthInMeters( VROverlayHandle_t ulOverlayHandle, float fWidthInMeters ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayWidthInMeters( VROverlayHandle_t ulOverlayHandle, float *pfWidthInMeters ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError SetOverlayAutoCurveDistanceRangeInMeters( VROverlayHandle_t ulOverlayHandle, float fMinDistanceInMeters, float fMaxDistanceInMeters ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayAutoCurveDistanceRangeInMeters( VROverlayHandle_t ulOverlayHandle, float *pfMinDistanceInMeters, float *pfMaxDistanceInMeters ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError SetOverlayTextureColorSpace( VROverlayHandle_t ulOverlayHandle, EColorSpace eTextureColorSpace ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayTextureColorSpace( VROverlayHandle_t ulOverlayHandle, EColorSpace *peTextureColorSpace ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError SetOverlayTextureBounds( VROverlayHandle_t ulOverlayHandle, const VRTextureBounds_t *pOverlayTextureBounds ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayTextureBounds( VROverlayHandle_t ulOverlayHandle, VRTextureBounds_t *pOverlayTextureBounds ) {
+        return VROverlayError_None;
+    }
+
+    uint32_t GetOverlayRenderModel( vr::VROverlayHandle_t ulOverlayHandle, char *pchValue, uint32_t unBufferSize, HmdColor_t *pColor, vr::EVROverlayError *pError ) {
+        return VROverlayError_None;
+    }
+
+    vr::EVROverlayError SetOverlayRenderModel( vr::VROverlayHandle_t ulOverlayHandle, const char *pchRenderModel, const HmdColor_t *pColor ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayTransformType( VROverlayHandle_t ulOverlayHandle, VROverlayTransformType *peTransformType ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError SetOverlayTransformAbsolute( VROverlayHandle_t ulOverlayHandle, ETrackingUniverseOrigin eTrackingOrigin, const HmdMatrix34_t *pmatTrackingOriginToOverlayTransform ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayTransformAbsolute( VROverlayHandle_t ulOverlayHandle, ETrackingUniverseOrigin *peTrackingOrigin, HmdMatrix34_t *pmatTrackingOriginToOverlayTransform ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError SetOverlayTransformTrackedDeviceRelative( VROverlayHandle_t ulOverlayHandle, TrackedDeviceIndex_t unTrackedDevice, const HmdMatrix34_t *pmatTrackedDeviceToOverlayTransform ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayTransformTrackedDeviceRelative( VROverlayHandle_t ulOverlayHandle, TrackedDeviceIndex_t *punTrackedDevice, HmdMatrix34_t *pmatTrackedDeviceToOverlayTransform ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError SetOverlayTransformTrackedDeviceComponent( VROverlayHandle_t ulOverlayHandle, TrackedDeviceIndex_t unDeviceIndex, const char *pchComponentName ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayTransformTrackedDeviceComponent( VROverlayHandle_t ulOverlayHandle, TrackedDeviceIndex_t *punDeviceIndex, char *pchComponentName, uint32_t unComponentNameSize ) {
+        return VROverlayError_None;
+    }
+
+    vr::EVROverlayError GetOverlayTransformOverlayRelative( VROverlayHandle_t ulOverlayHandle, VROverlayHandle_t *ulOverlayHandleParent, HmdMatrix34_t *pmatParentOverlayToOverlayTransform ) {
+        return VROverlayError_None;
+    }
+
+    vr::EVROverlayError SetOverlayTransformOverlayRelative( VROverlayHandle_t ulOverlayHandle, VROverlayHandle_t ulOverlayHandleParent, const HmdMatrix34_t *pmatParentOverlayToOverlayTransform ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError ShowOverlay( VROverlayHandle_t ulOverlayHandle ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError HideOverlay( VROverlayHandle_t ulOverlayHandle ) {
+        return VROverlayError_None;
+    }
+
+    bool IsOverlayVisible( VROverlayHandle_t ulOverlayHandle ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetTransformForOverlayCoordinates( VROverlayHandle_t ulOverlayHandle, ETrackingUniverseOrigin eTrackingOrigin, HmdVector2_t coordinatesInOverlay, HmdMatrix34_t *pmatTransform ) {
+        return VROverlayError_None;
+    }
+
+    bool PollNextOverlayEvent( VROverlayHandle_t ulOverlayHandle, VREvent_t *pEvent, uint32_t uncbVREvent ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayInputMethod( VROverlayHandle_t ulOverlayHandle, VROverlayInputMethod *peInputMethod ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError SetOverlayInputMethod( VROverlayHandle_t ulOverlayHandle, VROverlayInputMethod eInputMethod ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayMouseScale( VROverlayHandle_t ulOverlayHandle, HmdVector2_t *pvecMouseScale ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError SetOverlayMouseScale( VROverlayHandle_t ulOverlayHandle, const HmdVector2_t *pvecMouseScale ) {
+        return VROverlayError_None;
+    }
+
+    bool ComputeOverlayIntersection( VROverlayHandle_t ulOverlayHandle, const VROverlayIntersectionParams_t *pParams, VROverlayIntersectionResults_t *pResults ) {
+        return false;
+    }
+
+    bool HandleControllerOverlayInteractionAsMouse( VROverlayHandle_t ulOverlayHandle, TrackedDeviceIndex_t unControllerDeviceIndex ) {
+        return false;
+    }
+
+    bool IsHoverTargetOverlay( VROverlayHandle_t ulOverlayHandle ) {
+        return false;
+    }
+
+    vr::VROverlayHandle_t GetGamepadFocusOverlay() {
+        return 0;
+    };
+
+    EVROverlayError SetGamepadFocusOverlay( VROverlayHandle_t ulNewFocusOverlay ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError SetOverlayNeighbor( EOverlayDirection eDirection, VROverlayHandle_t ulFrom, VROverlayHandle_t ulTo ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError MoveGamepadFocusToNeighbor( EOverlayDirection eDirection, VROverlayHandle_t ulFrom ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError SetOverlayTexture( VROverlayHandle_t ulOverlayHandle, const Texture_t *pTexture ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError ClearOverlayTexture( VROverlayHandle_t ulOverlayHandle ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError SetOverlayRaw( VROverlayHandle_t ulOverlayHandle, void *pvBuffer, uint32_t unWidth, uint32_t unHeight, uint32_t unDepth ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError SetOverlayFromFile( VROverlayHandle_t ulOverlayHandle, const char *pchFilePath ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayTexture( VROverlayHandle_t ulOverlayHandle, void **pNativeTextureHandle, void *pNativeTextureRef, uint32_t *pWidth, uint32_t *pHeight, uint32_t *pNativeFormat, ETextureType *pAPIType, EColorSpace *pColorSpace, VRTextureBounds_t *pTextureBounds ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError ReleaseNativeOverlayHandle( VROverlayHandle_t ulOverlayHandle, void *pNativeTextureHandle ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayTextureSize( VROverlayHandle_t ulOverlayHandle, uint32_t *pWidth, uint32_t *pHeight ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError CreateDashboardOverlay( const char *pchOverlayKey, const char *pchOverlayFriendlyName, VROverlayHandle_t * pMainHandle, VROverlayHandle_t *pThumbnailHandle ) {
+        return VROverlayError_None;
+    }
+
+    bool IsDashboardVisible() {
+        return false;
+    }
+
+    bool IsActiveDashboardOverlay( VROverlayHandle_t ulOverlayHandle ) {
+        return false;
+    }
+
+    EVROverlayError SetDashboardOverlaySceneProcess( VROverlayHandle_t ulOverlayHandle, uint32_t unProcessId ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetDashboardOverlaySceneProcess( VROverlayHandle_t ulOverlayHandle, uint32_t *punProcessId ) {
+        return VROverlayError_None;
+    }
+
+    void ShowDashboard( const char *pchOverlayToShow ) {
+    }
+
+    vr::TrackedDeviceIndex_t GetPrimaryDashboardDevice() {
+        return 0;
+    }
+
+    EVROverlayError ShowKeyboard( EGamepadTextInputMode eInputMode, EGamepadTextInputLineMode eLineInputMode, const char *pchDescription, uint32_t unCharMax, const char *pchExistingText, bool bUseMinimalMode, uint64_t uUserValue ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError ShowKeyboardForOverlay( VROverlayHandle_t ulOverlayHandle, EGamepadTextInputMode eInputMode, EGamepadTextInputLineMode eLineInputMode, const char *pchDescription, uint32_t unCharMax, const char *pchExistingText, bool bUseMinimalMode, uint64_t uUserValue ) {
+        return VROverlayError_None;
+    }
+
+    uint32_t GetKeyboardText( VR_OUT_STRING() char *pchText, uint32_t cchText ) {
+        return 0;
+    }
+
+    void HideKeyboard() {
+    }
+
+    void SetKeyboardTransformAbsolute( ETrackingUniverseOrigin eTrackingOrigin, const HmdMatrix34_t *pmatTrackingOriginToKeyboardTransform ) {
+    }
+
+    void SetKeyboardPositionForOverlay( VROverlayHandle_t ulOverlayHandle, HmdRect2_t avoidRect ) {
+    }
+
+    EVROverlayError SetOverlayIntersectionMask( VROverlayHandle_t ulOverlayHandle, VROverlayIntersectionMaskPrimitive_t *pMaskPrimitives, uint32_t unNumMaskPrimitives, uint32_t unPrimitiveSize = sizeof( VROverlayIntersectionMaskPrimitive_t ) ) {
+        return VROverlayError_None;
+    }
+
+    EVROverlayError GetOverlayFlags( VROverlayHandle_t ulOverlayHandle, uint32_t *pFlags ) {
+        return VROverlayError_None;
+    }
+
+    VRMessageOverlayResponse ShowMessageOverlay( const char* pchText, const char* pchCaption, const char* pchButton0Text, const char* pchButton1Text = nullptr, const char* pchButton2Text = nullptr, const char* pchButton3Text = nullptr ) {
+        return VRMessageOverlayResponse::VRMessageOverlayResponse_ButtonPress_0;
+    }
+};
+
+bool startsWith(const char *pre, const char *str)
+{
+    size_t lenpre = strlen(pre),
+    lenstr = strlen(str);
+    return lenstr < lenpre ? false : strncmp(pre, str, lenpre) == 0;
+}
+
 void *VR_GetGenericInterface(const char *pchInterfaceVersion, EVRInitError *peError)
 {
         printf("Creating OpenHMD impl of interface: %s \n", pchInterfaceVersion);
 
-        if (strcmp (pchInterfaceVersion, "IVRSystem_016") == 0) {
+        *peError = VRInitError_None;
+        if (startsWith("IVRSystem_", pchInterfaceVersion)) {
             OpenHMDIVRSystem *ivrsystem = new OpenHMDIVRSystem();
             return ivrsystem;
-        }
-
-        if (strcmp (pchInterfaceVersion, "IVRRenderModels_005") == 0) {
+        } else if (startsWith("IVRRenderModels_", pchInterfaceVersion)) {
             OpenHMDRenderModels *ivrrenderModels = new OpenHMDRenderModels();
             return ivrrenderModels;
-        }
-
-        if (strcmp (pchInterfaceVersion, "IVRCompositor_020") == 0) {
+        } else if (startsWith("IVRCompositor_", pchInterfaceVersion)) {
             OpenHMDCompositor *ivrcompositor= new OpenHMDCompositor();
             return ivrcompositor;
+        } else if (startsWith("IVROverlay_", pchInterfaceVersion)) {
+            OpenHMDOverlay *ivroverlay = new OpenHMDOverlay();
+            return ivroverlay;
+        } else {
+            printf("interface %s failed\n", pchInterfaceVersion);
+            ohmd_ctx_destroy(ctx);
+            *peError = VRInitError_Unknown;
+            return nullptr;
         }
-
-        *peError = VRInitError_None;
-	return nullptr;
 }
 
 bool VR_IsInterfaceVersionValid(const char *pchInterfaceVersion)
