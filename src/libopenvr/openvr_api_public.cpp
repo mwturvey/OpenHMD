@@ -644,7 +644,61 @@ private:
     SDL_Texture *texture;
     GLuint shader_program;
     GLint texture_location;
-    GLuint vao, vbo;
+    GLuint vaol, vbol, vaor, vbor;
+
+    void mkvaovbo(bool leftEye) {
+        if (leftEye) {
+            glGenVertexArrays(1, &vaol);
+            glBindVertexArray(vaol);
+
+            glGenBuffers(1, &vbol);
+            glBindBuffer(GL_ARRAY_BUFFER, vbol);
+
+            GLfloat vertexData[] = {
+                //  X     Y     Z           U     V
+                0.0f, 1.0f, 0.0f,       1.0f, 1.0f, // vertex 0
+                -1.0f, 1.0f, 0.0f,       0.0f, 1.0f, // vertex 1
+                0.0f,-1.0f, 0.0f,       1.0f, 0.0f, // vertex 2
+                -1.0f,-1.0f, 0.0f,       0.0f, 0.0f, // vertex 3
+            }; // half fullscreen quad, 4 vertices with 5 components (floats) each
+            glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*4*5, vertexData, GL_STATIC_DRAW);
+
+        } else {
+            glGenVertexArrays(1, &vaor);
+            glBindVertexArray(vaor);
+
+            glGenBuffers(1, &vbor);
+            glBindBuffer(GL_ARRAY_BUFFER, vbor);
+
+            GLfloat vertexData[] = {
+                //  X     Y     Z           U     V
+                1.0f, 1.0f, 0.0f,       1.0f, 1.0f, // vertex 0
+                0.0f, 1.0f, 0.0f,       0.0f, 1.0f, // vertex 1
+                1.0f,-1.0f, 0.0f,       1.0f, 0.0f, // vertex 2
+                0.0f,-1.0f, 0.0f,       0.0f, 0.0f, // vertex 3
+            }; // half fullscreen quad, 4 vertices with 5 components (floats) each
+            glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*4*5, vertexData, GL_STATIC_DRAW);
+
+        }
+
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(GLfloat), (char*)0 + 0*sizeof(GLfloat));
+
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(GLfloat), (char*)0 + 3*sizeof(GLfloat));
+
+        GLuint ibo;
+        glGenBuffers(1, &ibo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+
+        GLuint indexData[] = {
+            0,1,2, // first triangle
+            2,1,3, // second triangle
+        };
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)*2*3, indexData, GL_STATIC_DRAW);
+        glBindVertexArray(0);
+    }
 public:
         OpenHMDCompositor() {
             SDL_Init(SDL_INIT_VIDEO);
@@ -666,9 +720,11 @@ public:
             if (compositorwindow == NULL) {
                 printf("Could not create window: %s\n", SDL_GetError());
             }
+            checkSDLError(__LINE__);
+
+            // current context is the client application rendering
             SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
             compositorcontext = SDL_GL_CreateContext(compositorwindow);
-            checkSDLError(__LINE__);
 
 
             SDL_GL_MakeCurrent(compositorwindow, compositorcontext);
@@ -730,106 +786,10 @@ public:
 
             texture_location = glGetUniformLocation(shader_program, "tex");
 
-            GLuint ibo;
-
-            // generate and bind the vao
-            glGenVertexArrays(1, &vao);
-            glBindVertexArray(vao);
-
-            // generate and bind the vertex buffer object
-            glGenBuffers(1, &vbo);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-            // data for a fullscreen quad (this time with texture coords)
-            GLfloat vertexData[] = {
-                //  X     Y     Z           U     V
-                1.0f, 1.0f, 0.0f,       1.0f, 1.0f, // vertex 0
-                -1.0f, 1.0f, 0.0f,       0.0f, 1.0f, // vertex 1
-                1.0f,-1.0f, 0.0f,       1.0f, 0.0f, // vertex 2
-                -1.0f,-1.0f, 0.0f,       0.0f, 0.0f, // vertex 3
-            }; // 4 vertices with 5 components (floats) each
-
-            // fill with data
-            glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*4*5, vertexData, GL_STATIC_DRAW);
-
-
-            // set up generic attrib pointers
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(GLfloat), (char*)0 + 0*sizeof(GLfloat));
-
-            glEnableVertexAttribArray(1);
-            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(GLfloat), (char*)0 + 3*sizeof(GLfloat));
-
-
-            // generate and bind the index buffer object
-            glGenBuffers(1, &ibo);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-
-            GLuint indexData[] = {
-                0,1,2, // first triangle
-                2,1,3, // second triangle
-            };
-
-            // fill with data
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)*2*3, indexData, GL_STATIC_DRAW);
-
-            // "unbind" vao
-            glBindVertexArray(0);
-
-            // texture handle
-            GLuint texture;
-
-            // generate texture
-            glGenTextures(1, &texture);
-
-            // bind the texture
-            glBindTexture(GL_TEXTURE_2D, texture);
-
-            // create some image data
-            std::vector<GLubyte> image(4*w*h);
-            for(int j = 0;j<h;++j) {
-                for(int i = 0;i<w;++i) {
-                    size_t index = j*w + i;
-                    image[4*index + 0] = 0xFF*(j/10%2)*(i/10%2); // R
-                    image[4*index + 1] = 0xFF*(j/13%2)*(i/13%2); // G
-                    image[4*index + 2] = 0xFF*(j/17%2)*(i/17%2); // B
-                    image[4*index + 3] = 0xFF;                   // A
-                }
-            }
-
-            // set texture parameters
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-            // set texture content
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, eyew, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]);
+            mkvaovbo(true);
+            mkvaovbo(false);
 
             SDL_GL_MakeCurrent(clientwindow, clientcontext);
-
-            /*
-
-            SDL_GL_MakeCurrent(compositorwindow, compositorcontext);
-
-            renderer = SDL_CreateRenderer( compositorwindow, -1, SDL_RENDERER_ACCELERATED);
-            //SDL_Surface *TextureImage = SDL_LoadBMP( "placeholder.bmp" );
-            texture = SDL_CreateTextureFromSurface(renderer, TextureImage);
-            SDL_RenderClear(renderer);
-            SDL_Rect texture_rect;
-            texture_rect.x = 0;
-            texture_rect.y = 0;
-            texture_rect.w = w/2;
-            texture_rect.h = h;
-            SDL_RenderCopy(renderer, texture, NULL, &texture_rect);
-            texture_rect.x = w/2;
-            texture_rect.y = 0;
-            texture_rect.w = w/2;
-            texture_rect.h = h;
-            SDL_RenderCopy(renderer, texture, NULL, &texture_rect);
-
-            SDL_GL_MakeCurrent(clientwindow, clientcontext);
-            */
 
         }
 
@@ -914,8 +874,9 @@ public:
 
             SDL_GL_MakeCurrent(compositorwindow, compositorcontext);
 
-
-            glClear(GL_COLOR_BUFFER_BIT);
+            if (eEye == EVREye::Eye_Left) {
+                glClear(GL_COLOR_BUFFER_BIT);
+            }
 
             // use the shader program
             glUseProgram(shader_program);
@@ -927,8 +888,12 @@ public:
             // set texture uniform
             glUniform1i(texture_location, 0);
 
-            // bind the vao
-            glBindVertexArray(vao);
+            if (eEye == EVREye::Eye_Left) {
+                // bind the vao
+                glBindVertexArray(vaol);
+            } else {
+                glBindVertexArray(vaor);
+            }
 
             // draw
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -939,8 +904,10 @@ public:
                 std::cerr << error << std::endl;
             }
 
+            if (eEye == EVREye::Eye_Right) {
             // finally swap buffers
             SDL_GL_SwapWindow(compositorwindow);
+            }
 
 
             SDL_GL_MakeCurrent(clientwindow, clientcontext);
