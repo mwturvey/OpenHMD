@@ -16,7 +16,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
-#include <GL/glew.h>
+
+//TODO what is this
+#define GL_GLEXT_PROTOTYPES
+#include <GL/gl.h>
 
 using vr::EVRInitError;
 using vr::IVRSystem;
