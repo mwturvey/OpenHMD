@@ -8,6 +8,7 @@
 #include <openhmd.h>
 
 #include <iostream>
+#include <vector>
 
 //for the compositor
 #include <SDL.h>
@@ -17,6 +18,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
+#include <GL/glew.h>
 
 using vr::EVRInitError;
 using vr::IVRSystem;
@@ -320,7 +322,25 @@ public:
             printf("right\n");
         }
         //TODO:
+        glm::mat4 Projection = glm::mat4(1.0);
+        //std::cout << glm::to_string(Projection) << std::endl;
+
         HmdMatrix34_t matrix;
+        matrix.m[0][0] = Projection[0][0];
+        matrix.m[0][1] = Projection[0][1];
+        matrix.m[0][2] = Projection[0][2];
+        matrix.m[0][3] = Projection[0][3];
+
+        matrix.m[1][0] = Projection[1][0];
+        matrix.m[1][1] = Projection[1][1];
+        matrix.m[1][2] = Projection[1][2];
+        matrix.m[1][3] = Projection[1][3];
+
+        matrix.m[2][0] = Projection[2][0];
+        matrix.m[2][1] = Projection[2][1];
+        matrix.m[2][2] = Projection[2][2];
+        matrix.m[2][3] = Projection[2][3];
+
         return matrix;
     }
 
@@ -467,6 +487,7 @@ public:
     }
 
     HmdMatrix34_t GetMatrix34TrackedDeviceProperty( vr::TrackedDeviceIndex_t unDeviceIndex, ETrackedDeviceProperty prop, ETrackedPropertyError *pError = 0L ) {
+        printf("get matrix tracked device property");
         HmdMatrix34_t matrix;
         return matrix;
     }
@@ -612,11 +633,18 @@ void checkSDLError(int line = -1)
 class OpenHMDCompositor : IVRCompositor
 {
 private:
-    SDL_Window *window = NULL;
-    SDL_GLContext maincontext;
+    SDL_Window *compositorwindow = NULL;
+    SDL_Window *clientwindow = NULL;
+    SDL_GLContext clientcontext;
+    SDL_GLContext compositorcontext;
     SDL_Renderer *renderer;
     int w;
+    int eyew;
     int h;
+    SDL_Texture *texture;
+    GLuint shader_program;
+    GLint texture_location;
+    GLuint vao, vbo;
 public:
         OpenHMDCompositor() {
             SDL_Init(SDL_INIT_VIDEO);
@@ -625,21 +653,184 @@ public:
 
 
             ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, &w);
+            eyew = w/2;
             ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, &h);
 
-            uint32_t windowflags = SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN;
-            // don't show window until we have something working to show
-            //window = SDL_CreateWindow("libopenVR Compositor (OpenHMD)", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, windowflags);
-            if (window == NULL) {
+            clientwindow = SDL_GL_GetCurrentWindow();
+            clientcontext = SDL_GL_GetCurrentContext();
+            printf("current GL context %p\n", clientcontext);
+
+
+            uint32_t windowflags = SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_BORDERLESS;
+            compositorwindow = SDL_CreateWindow("libopenVR Compositor (OpenHMD)", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, windowflags);
+            if (compositorwindow == NULL) {
                 printf("Could not create window: %s\n", SDL_GetError());
             }
-
-            //TODO: manage OpenGL contexts
-            //maincontext = SDL_GL_CreateContext(window);
-            //renderer = SDL_CreateRenderer( window, -1, SDL_RENDERER_ACCELERATED);
-
-
+            SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
+            compositorcontext = SDL_GL_CreateContext(compositorwindow);
             checkSDLError(__LINE__);
+
+
+            SDL_GL_MakeCurrent(compositorwindow, compositorcontext);
+
+            // credit: https://github.com/progschj/OpenGL-Examples/blob/master/03texture.cpp
+
+            std::string vertex_source =
+                "#version 330\n"
+                "layout(location = 0) in vec4 vposition;\n"
+                "layout(location = 1) in vec2 vtexcoord;\n"
+                "out vec2 ftexcoord;\n"
+                "void main() {\n"
+                "   ftexcoord = vtexcoord;\n"
+                "   gl_Position = vposition;\n"
+                "}\n";
+
+            std::string fragment_source =
+                "#version 330\n"
+                "uniform sampler2D tex;\n" // texture uniform
+                "in vec2 ftexcoord;\n"
+                "layout(location = 0) out vec4 FragColor;\n"
+                "void main() {\n"
+                "   FragColor = texture(tex, ftexcoord);\n"
+                "}\n";
+
+            GLuint vertex_shader, fragment_shader;
+
+            // we need these to properly pass the strings
+            const char *source;
+            int length;
+
+            // create and compiler vertex shader
+            vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+            source = vertex_source.c_str();
+            length = vertex_source.size();
+            glShaderSource(vertex_shader, 1, &source, &length);
+            glCompileShader(vertex_shader);
+            //TODO: error checking
+
+            // create and compiler fragment shader
+            fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+            source = fragment_source.c_str();
+            length = fragment_source.size();
+            glShaderSource(fragment_shader, 1, &source, &length);
+            glCompileShader(fragment_shader);
+            //TODO: error checking
+
+
+            // create program
+            shader_program = glCreateProgram();
+
+            // attach shaders
+            glAttachShader(shader_program, vertex_shader);
+            glAttachShader(shader_program, fragment_shader);
+
+            // link the program and check for errors
+            glLinkProgram(shader_program);
+            //TODO: error checking
+
+            texture_location = glGetUniformLocation(shader_program, "tex");
+
+            GLuint ibo;
+
+            // generate and bind the vao
+            glGenVertexArrays(1, &vao);
+            glBindVertexArray(vao);
+
+            // generate and bind the vertex buffer object
+            glGenBuffers(1, &vbo);
+            glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+            // data for a fullscreen quad (this time with texture coords)
+            GLfloat vertexData[] = {
+                //  X     Y     Z           U     V
+                1.0f, 1.0f, 0.0f,       1.0f, 1.0f, // vertex 0
+                -1.0f, 1.0f, 0.0f,       0.0f, 1.0f, // vertex 1
+                1.0f,-1.0f, 0.0f,       1.0f, 0.0f, // vertex 2
+                -1.0f,-1.0f, 0.0f,       0.0f, 0.0f, // vertex 3
+            }; // 4 vertices with 5 components (floats) each
+
+            // fill with data
+            glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*4*5, vertexData, GL_STATIC_DRAW);
+
+
+            // set up generic attrib pointers
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(GLfloat), (char*)0 + 0*sizeof(GLfloat));
+
+            glEnableVertexAttribArray(1);
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(GLfloat), (char*)0 + 3*sizeof(GLfloat));
+
+
+            // generate and bind the index buffer object
+            glGenBuffers(1, &ibo);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+
+            GLuint indexData[] = {
+                0,1,2, // first triangle
+                2,1,3, // second triangle
+            };
+
+            // fill with data
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)*2*3, indexData, GL_STATIC_DRAW);
+
+            // "unbind" vao
+            glBindVertexArray(0);
+
+            // texture handle
+            GLuint texture;
+
+            // generate texture
+            glGenTextures(1, &texture);
+
+            // bind the texture
+            glBindTexture(GL_TEXTURE_2D, texture);
+
+            // create some image data
+            std::vector<GLubyte> image(4*w*h);
+            for(int j = 0;j<h;++j) {
+                for(int i = 0;i<w;++i) {
+                    size_t index = j*w + i;
+                    image[4*index + 0] = 0xFF*(j/10%2)*(i/10%2); // R
+                    image[4*index + 1] = 0xFF*(j/13%2)*(i/13%2); // G
+                    image[4*index + 2] = 0xFF*(j/17%2)*(i/17%2); // B
+                    image[4*index + 3] = 0xFF;                   // A
+                }
+            }
+
+            // set texture parameters
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+            // set texture content
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, eyew, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]);
+
+            SDL_GL_MakeCurrent(clientwindow, clientcontext);
+
+            /*
+
+            SDL_GL_MakeCurrent(compositorwindow, compositorcontext);
+
+            renderer = SDL_CreateRenderer( compositorwindow, -1, SDL_RENDERER_ACCELERATED);
+            //SDL_Surface *TextureImage = SDL_LoadBMP( "placeholder.bmp" );
+            texture = SDL_CreateTextureFromSurface(renderer, TextureImage);
+            SDL_RenderClear(renderer);
+            SDL_Rect texture_rect;
+            texture_rect.x = 0;
+            texture_rect.y = 0;
+            texture_rect.w = w/2;
+            texture_rect.h = h;
+            SDL_RenderCopy(renderer, texture, NULL, &texture_rect);
+            texture_rect.x = w/2;
+            texture_rect.y = 0;
+            texture_rect.w = w/2;
+            texture_rect.h = h;
+            SDL_RenderCopy(renderer, texture, NULL, &texture_rect);
+
+            SDL_GL_MakeCurrent(clientwindow, clientcontext);
+            */
+
         }
 
 	void SetTrackingSpace( ETrackingUniverseOrigin eOrigin ) {
@@ -670,6 +861,7 @@ public:
             ohmd_device_getf(hmd, OHMD_ROTATION_QUAT, quat);
             if (fulldbg) printf("ohmd rotation quat %f %f %f %f\n", quat[0], quat[1], quat[2], quat[3]);
 
+            // CAREFUL: w x y z
             glm::quat rotation(quat[3], quat[0], quat[1], quat[2]);
             glm::mat3 m = glm::mat3_cast(rotation);
 
@@ -714,21 +906,46 @@ public:
             }
 
 
-            //TODO:
+            //printf("texture pointer %p  ", pTexture->handle);
+            uintptr_t handle = reinterpret_cast<uintptr_t>(pTexture->handle);
+            unsigned int cast = (unsigned int) handle;
+            GLuint gluint = reinterpret_cast<GLuint>(cast);
+            //printf("gluint %d\n", gluint);
 
-            /*
-            SDL_Surface *TextureImage = SDL_LoadBMP( "placeholder.bmp" );
-            SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, TextureImage);
+            SDL_GL_MakeCurrent(compositorwindow, compositorcontext);
 
-            SDL_RenderClear(renderer);
-            SDL_Rect texture_rect;
-            texture_rect.x = 0;
-            texture_rect.y = 0;
-            texture_rect.w = w/2;
-            texture_rect.h = h;
-            SDL_RenderCopy(renderer, texture, NULL, &texture_rect);
-            SDL_RenderPresent(renderer);
-            */
+
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            // use the shader program
+            glUseProgram(shader_program);
+
+            // bind texture to texture unit 0
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gluint);
+
+            // set texture uniform
+            glUniform1i(texture_location, 0);
+
+            // bind the vao
+            glBindVertexArray(vao);
+
+            // draw
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+            // check for errors
+            GLenum error = glGetError();
+            if(error != GL_NO_ERROR) {
+                std::cerr << error << std::endl;
+            }
+
+            // finally swap buffers
+            SDL_GL_SwapWindow(compositorwindow);
+
+
+            SDL_GL_MakeCurrent(clientwindow, clientcontext);
+
+
             return VRCompositorError_None;
         }
 
@@ -814,7 +1031,7 @@ public:
 
 	void CompositorQuit() {
             printf("compositor quit\n");
-            SDL_DestroyWindow(window);
+            SDL_DestroyWindow(compositorwindow);
             SDL_Quit();
         }
 
