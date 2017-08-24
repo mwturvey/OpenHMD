@@ -10,16 +10,33 @@ Once this library is finished, the libopenvr_api shipped in any SteamVR applicat
 
 # Status
 
+
+## Rendering
+
 hellovr_opengl runs and renders something to its preview window.
+
+The frames for each eye are submitted to libopenvr as OpenGL texture ids. The VR compositor is an SDL fullscreen window  with an OpenGL context that is shared with the rendering application, currently it displays these textures as they are.
+
+Compositor TODO: Apply OpenHMD's universal distortion shader before displaying.
+
+## Orientation Tracking
 
 The HMD is hardcoded as deviceindex 0, controller support has to wait until the HMD tracking works.
 
-In WaitGetPoses the rotation of the HMD is set. TODO: do it right.
+Three matrices are used by hellovr_opengl that need to be checked and fixed:
 
-The compositor is unimplemented. TODO: 1. make a fullscreen window with SDL that shows the incoming textures. 2. apply openhmd's universal distortion shader.
+General setup: GetProjectionMatrix() and GetEyeToHeadTransform() - currently identity matrices
 
-If you want to hack on it: Just build this OpenHMD branch with cmake and by default it will build OpenHMD/src/libopenvr/libopenvr_api.so.
+HMD orientation that gets updated every frame: WaitGetPoses() - hmd quaternion converted to matrix
 
-For easy testing OpenHMD/src/libopenvr/hellovr_opengl is built and linked to the libopenvr_api.so library in the same directory - no need to install anything. Start ./hellovr_opengl, watch the output and implement the relevant functions in the skeleton classes in openvr_api_public.cpp.
+Current status: The rotation axes correspond to the real axes, but are off. Best look at it yourself.
 
-There's a lot of trash source code copied from the openvr repository in this branch. It's just there to get off the ground. Eventually most of it will be deleted.
+# How to use and hack it
+
+Build the openvr branch of https://github.com/ChristophHaag/OpenHMD/tree/openvr with cmake (automake suppport will be added later) and by default it will build OpenHMD/src/libopenvr/libopenvr_api.so.
+
+For easy testing OpenHMD/src/libopenvr/hellovr_opengl is built and linked to the libopenvr_api.so library in the same directory - no need to install anything. Start ./hellovr_opengl and see what happens.
+
+The entire implementation of the relevant classes is contained in openvr_api_public.cpp. Only the three main classes are implemented, and many methods are still unimplemented.
+
+There are many files copied from Valve's openvr repository. Most will be deleted once there is no dependency to them left.
