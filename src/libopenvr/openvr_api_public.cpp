@@ -280,7 +280,7 @@ public:
         }
 
         //TODO:
-        glm::mat4 Projection = glm::perspective(-35.0f, 1.0f, 0.1f, 100.0f);
+        glm::mat4 Projection = glm::perspective(-35.0f, ((float)w/2.f) / (float)h, fNearZ, fFarZ);
         //std::cout << glm::to_string(Projection) << std::endl;
 
         HmdMatrix44_t matrix;
