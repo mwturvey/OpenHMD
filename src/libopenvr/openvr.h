@@ -3716,7 +3716,6 @@ namespace vr
 
 		if ( peError )
 			*peError = eError;
-                printf("return pvrsystem %p", pVRSystem);
 		return pVRSystem;
 	}
 

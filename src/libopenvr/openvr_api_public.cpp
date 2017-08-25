@@ -813,7 +813,7 @@ public:
             pRenderPoseArray[0].bPoseIsValid = true;
 
             ohmd_ctx_update(ctx);
-            float zero[] = {.0, .1, .2, 1};
+            float zero[] = {.0, .0, .0, 1};
 
             ohmd_device_setf(hmd, OHMD_ROTATION_QUAT, zero);
             ohmd_device_setf(hmd, OHMD_POSITION_VECTOR, zero);
