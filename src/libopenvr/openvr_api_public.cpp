@@ -256,13 +256,16 @@ class OpenHMDRenderModels : vr::IVRRenderModels {
 
 class OpenHMDIVRSystem : IVRSystem
 {
+    int w;
+    int h;
 public:
-    void GetRecommendedRenderTargetSize( uint32_t *pnWidth, uint32_t *pnHeight ) {
-        //TODO:
-        int w;
-        int h;
+    OpenHMDIVRSystem() {
         ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, &w);
         ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, &h);
+    }
+
+    void GetRecommendedRenderTargetSize( uint32_t *pnWidth, uint32_t *pnHeight ) {
+        //TODO:
         *pnWidth = w;
         *pnHeight = h;
         printf("recommended render target size: %dx%d\n", *pnWidth, *pnHeight);
@@ -277,7 +280,7 @@ public:
         }
 
         //TODO:
-        glm::mat4 Projection = glm::mat4(1.0);
+        glm::mat4 Projection = glm::perspective(-35.0f, 1.0f, 0.1f, 100.0f);
         //std::cout << glm::to_string(Projection) << std::endl;
 
         HmdMatrix44_t matrix;
