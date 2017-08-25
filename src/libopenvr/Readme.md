@@ -23,13 +23,16 @@ Compositor TODO: Apply OpenHMD's universal distortion shader before displaying.
 
 The HMD is hardcoded as deviceindex 0, controller support has to wait until the HMD tracking works.
 
-Three matrices are used by hellovr_opengl that need to be checked and fixed:
+Three matrices are used by hellovr_opengl:
 
-General setup: GetProjectionMatrix() and GetEyeToHeadTransform() - currently identity matrices
+General setup:
+GetProjectionMatrix() is glm::perspective()
+GetEyeToHeadTransform() - currently identity matrix
 
-HMD orientation that gets updated every frame: WaitGetPoses() - hmd quaternion converted to matrix
+HMD orientation that gets updated every frame:
+WaitGetPoses() - hmd quaternion converted to matrix
 
-Current status: The rotation axes correspond to the real axes, but are off. Best look at it yourself.
+Current status: orientation works and scale looks okay, but cubes look huge.
 
 # How to use and hack it
 
