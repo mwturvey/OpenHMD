@@ -11,6 +11,7 @@
 //for the compositor
 #include <SDL.h>
 
+#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -274,14 +275,24 @@ public:
     HmdMatrix44_t GetProjectionMatrix( EVREye eEye, float fNearZ, float fFarZ ) {
         printf("projection matrix for eye: ");
         if (eEye == EVREye::Eye_Left) {
-            printf("left\n");
+            printf("left ");
         } else {
-            printf("right\n");
+            printf("right ");
         }
 
-        //TODO:
-        glm::mat4 Projection = glm::perspective(-35.0f, ((float)w/2.f) / (float)h, fNearZ, fFarZ);
-        //std::cout << glm::to_string(Projection) << std::endl;
+
+        float fov;
+        float aspect;
+        if (eEye == EVREye::Eye_Left) {
+            ohmd_device_getf(hmd, OHMD_LEFT_EYE_FOV, &fov);
+            ohmd_device_getf(hmd, OHMD_LEFT_EYE_ASPECT_RATIO, &aspect);
+        } else {
+            ohmd_device_getf(hmd, OHMD_RIGHT_EYE_FOV, &fov);
+            ohmd_device_getf(hmd, OHMD_RIGHT_EYE_ASPECT_RATIO, &aspect);
+        }
+        printf(" with fov %f, aspect %f: ", fov, aspect);
+        glm::mat4 Projection = glm::perspective(fov, aspect, fNearZ, fFarZ);
+        printf("%s\n", glm::to_string(Projection).c_str());
 
         HmdMatrix44_t matrix;
         matrix.m[0][0] = Projection[0][0];
