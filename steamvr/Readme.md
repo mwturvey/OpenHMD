@@ -15,6 +15,5 @@ Then copy the steamvr.vrsettings file that disables the lighthouse and oculus de
 Don't forget to make a backup if you have special SteamVR settings. Now run SteamVR and check ~/.local/share/Steam/logs/vrserver.txt for errors.
 
 TODO:
-* fix HMD rotation
-* implement controllers
+* implement controllers when openhmd controller api https://github.com/OpenHMD/OpenHMD/pull/93 is merged
 * implement distortion
