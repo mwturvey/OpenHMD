@@ -1,6 +1,7 @@
 project (driver_openhmd)
 set(TARGET_NAME driver_openhmd)
 
+include_directories(${CMAKE_BINARY_DIR}/include)
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 
 add_library(${TARGET_NAME} SHARED
@@ -14,6 +15,7 @@ add_library(${TARGET_NAME} SHARED
 target_link_libraries(${TARGET_NAME}
   ${OPENVR_LIBRARIES}
   ${CMAKE_DL_LIBS}
+  openhmd
 )
 
 # don't add lib prefix to driver_openhmd.so

@@ -12,6 +12,8 @@
 #include <windows.h>
 #endif
 
+#include <openhmd.h>
+
 using namespace vr;
 
 
@@ -24,6 +26,28 @@ using namespace vr;
 #else
 #error "Unsupported Platform."
 #endif
+
+// gets float values from the device and prints them
+void print_infof(ohmd_device* hmd, const char* name, int len, ohmd_float_value val)
+{
+    float f[len];
+    ohmd_device_getf(hmd, val, f);
+    printf("%-25s", name);
+    for(int i = 0; i < len; i++)
+        printf("%f ", f[i]);
+    printf("\n");
+}
+
+// gets int values from the device and prints them
+void print_infoi(ohmd_device* hmd, const char* name, int len, ohmd_int_value val)
+{
+    int iv[len];
+    ohmd_device_geti(hmd, val, iv);
+    printf("%-25s", name);
+    for(int i = 0; i < len; i++)
+        printf("%d ", iv[i]);
+    printf("\n");
+}
 
 inline HmdQuaternion_t HmdQuaternion_Init( double w, double x, double y, double z )
 {
@@ -69,10 +93,10 @@ static const char * const k_pch_Sample_DisplayFrequency_Float = "displayFrequenc
 // Purpose:
 //-----------------------------------------------------------------------------
 
-class CWatchdogDriver_Sample : public IVRWatchdogProvider
+class CWatchdogDriver_OpenHMD : public IVRWatchdogProvider
 {
 public:
-	CWatchdogDriver_Sample()
+	CWatchdogDriver_OpenHMD()
 	{
 		m_pWatchdogThread = nullptr;
 	}
@@ -84,7 +108,7 @@ private:
 	std::thread *m_pWatchdogThread;
 };
 
-CWatchdogDriver_Sample g_watchdogDriverNull;
+CWatchdogDriver_OpenHMD g_watchdogDriverOpenHMD;
 
 
 bool g_bExiting = false;
@@ -109,7 +133,7 @@ void WatchdogThreadFunction(  )
 	}
 }
 
-EVRInitError CWatchdogDriver_Sample::Init( vr::IVRDriverContext *pDriverContext )
+EVRInitError CWatchdogDriver_OpenHMD::Init( vr::IVRDriverContext *pDriverContext )
 {
 	VR_INIT_WATCHDOG_DRIVER_CONTEXT( pDriverContext );
 	InitDriverLog( vr::VRDriverLog() );
@@ -129,7 +153,7 @@ EVRInitError CWatchdogDriver_Sample::Init( vr::IVRDriverContext *pDriverContext 
 }
 
 
-void CWatchdogDriver_Sample::Cleanup()
+void CWatchdogDriver_OpenHMD::Cleanup()
 {
 	g_bExiting = true;
 	if ( m_pWatchdogThread )
@@ -146,11 +170,55 @@ void CWatchdogDriver_Sample::Cleanup()
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-class CSampleDeviceDriver : public vr::ITrackedDeviceServerDriver, public vr::IVRDisplayComponent
+class COpenHMDDeviceDriver : public vr::ITrackedDeviceServerDriver, public vr::IVRDisplayComponent
 {
 public:
-	CSampleDeviceDriver(  )
+    ohmd_context* ctx;
+    ohmd_device* hmd;
+	COpenHMDDeviceDriver(  )
 	{
+                ctx = ohmd_ctx_create();
+                // Probe for devices
+                int num_devices = ohmd_ctx_probe(ctx);
+                if(num_devices < 0){
+                    printf("failed to probe devices: %s\n", ohmd_ctx_get_error(ctx));
+                }
+
+                printf("num devices: %d\n\n", num_devices);
+
+                // Print device information
+                for(int i = 0; i < num_devices; i++){
+                    printf("device %d\n", i);
+                    printf("  vendor:  %s\n", ohmd_list_gets(ctx, i, OHMD_VENDOR));
+                    printf("  product: %s\n", ohmd_list_gets(ctx, i, OHMD_PRODUCT));
+                    printf("  path:    %s\n\n", ohmd_list_gets(ctx, i, OHMD_PATH));
+                }
+
+                // Open default device (0)
+                hmd = ohmd_list_open_device(ctx, 0);
+
+                if(!hmd){
+                    printf("failed to open device: %s\n", ohmd_ctx_get_error(ctx));
+                }
+
+                // Print hardware information for the opened device
+                int ivals[2];
+                ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, ivals);
+                ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, ivals + 1);
+                printf("resolution:              %i x %i\n", ivals[0], ivals[1]);
+
+                print_infof(hmd, "hsize:",            1, OHMD_SCREEN_HORIZONTAL_SIZE);
+                print_infof(hmd, "vsize:",            1, OHMD_SCREEN_VERTICAL_SIZE);
+                print_infof(hmd, "lens separation:",  1, OHMD_LENS_HORIZONTAL_SEPARATION);
+                print_infof(hmd, "lens vcenter:",     1, OHMD_LENS_VERTICAL_POSITION);
+                print_infof(hmd, "left eye fov:",     1, OHMD_LEFT_EYE_FOV);
+                print_infof(hmd, "right eye fov:",    1, OHMD_RIGHT_EYE_FOV);
+                print_infof(hmd, "left eye aspect:",  1, OHMD_LEFT_EYE_ASPECT_RATIO);
+                print_infof(hmd, "right eye aspect:", 1, OHMD_RIGHT_EYE_ASPECT_RATIO);
+                print_infof(hmd, "distortion k:",     6, OHMD_DISTORTION_K);
+
+                print_infoi(hmd, "digital button count:", 1, OHMD_BUTTON_COUNT);
+
 		m_unObjectId = vr::k_unTrackedDeviceIndexInvalid;
 		m_ulPropertyContainer = vr::k_ulInvalidPropertyContainer;
 
@@ -182,7 +250,7 @@ public:
 		DriverLog( "driver_null: IPD: %f\n", m_flIPD );
 	}
 
-	virtual ~CSampleDeviceDriver()
+	virtual ~COpenHMDDeviceDriver()
 	{
 	}
 
@@ -405,12 +473,12 @@ public:
 	virtual void LeaveStandby()  {}
 
 private:
-	CSampleDeviceDriver *m_pNullHmdLatest;
+	COpenHMDDeviceDriver *m_pNullHmdLatest;
 	
 	bool m_bEnableNullDriver;
 };
 
-CServerDriver_Sample g_serverDriverNull;
+CServerDriver_Sample g_serverDriverOpenHMD;
 
 
 EVRInitError CServerDriver_Sample::Init( vr::IVRDriverContext *pDriverContext )
@@ -418,7 +486,7 @@ EVRInitError CServerDriver_Sample::Init( vr::IVRDriverContext *pDriverContext )
 	VR_INIT_SERVER_DRIVER_CONTEXT( pDriverContext );
 	InitDriverLog( vr::VRDriverLog() );
 
-	m_pNullHmdLatest = new CSampleDeviceDriver();
+	m_pNullHmdLatest = new COpenHMDDeviceDriver();
 	vr::VRServerDriverHost()->TrackedDeviceAdded( m_pNullHmdLatest->GetSerialNumber().c_str(), vr::TrackedDeviceClass_HMD, m_pNullHmdLatest );
 	return VRInitError_None;
 }
@@ -446,11 +514,11 @@ HMD_DLL_EXPORT void *HmdDriverFactory( const char *pInterfaceName, int *pReturnC
 {
 	if( 0 == strcmp( IServerTrackedDeviceProvider_Version, pInterfaceName ) )
 	{
-		return &g_serverDriverNull;
+		return &g_serverDriverOpenHMD;
 	}
 	if( 0 == strcmp( IVRWatchdogProvider_Version, pInterfaceName ) )
 	{
-		return &g_watchdogDriverNull;
+		return &g_watchdogDriverOpenHMD;
 	}
 
 	if( pReturnCode )
