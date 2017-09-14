@@ -440,13 +440,18 @@ public:
                 //glm::quat rotation(quat[3], quat[0], quat[1], quat[2]);
                 //glm::mat3 m = glm::mat3_cast(rotation);
 
-                HmdQuaternion_t openvrquat{quat[3], quat[0], quat[1], quat[2]};
-                pose.qWorldFromDriverRotation = openvrquat;
+                //TODO: why inverted?
+                HmdQuaternion_t openvrquat{
+                    .w = quat[3],
+                    .x = quat[0],
+                    .y = quat[1],
+                    .z = quat[2]
+                };
+                pose.qRotation = openvrquat;
+
+                pose.qWorldFromDriverRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
                 pose.qDriverFromHeadRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
 
-		
-                //pose.qWorldFromDriverRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
-                //pose.qDriverFromHeadRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
 		return pose;
 	}
 	
