@@ -170,7 +170,7 @@ void CWatchdogDriver_OpenHMD::Cleanup()
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-class COpenHMDDeviceDriver : public vr::ITrackedDeviceServerDriver, public vr::IVRDisplayComponent
+class COpenHMDDeviceDriver : public vr::ITrackedDeviceServerDriver, public vr::IVRDisplayComponent, public vr::IVRControllerComponent
 {
 public:
     ohmd_context* ctx;
@@ -343,6 +343,13 @@ public:
 			return (vr::IVRDisplayComponent*)this;
 		}
 
+		if (!strcmp(pchComponentNameAndVersion, vr::IVRControllerComponent_Version))
+                {
+                    return (vr::IVRControllerComponent*)this;
+                }
+
+                return NULL;
+
 		// override this to add a component to a driver
 		return NULL;
 	}
@@ -462,6 +469,43 @@ public:
 	}
 
 	std::string GetSerialNumber() const { return m_sSerialNumber; }
+
+	VRControllerState_t controllerstate;
+	VRControllerState_t GetControllerState() {
+
+            controllerstate.unPacketNum = controllerstate.unPacketNum + 1;
+            /* //TODO: buttons
+            if (ohmd_button_state) {
+                state.ulButtonPressed |= vr::ButtonMaskFromId(k_EButton_Button1);
+            }
+            // other buttons ...
+            */
+
+            //TODO: nolo says when a button was pressed a button was also touched. is that so?
+            controllerstate.ulButtonTouched |= controllerstate.ulButtonPressed;
+
+            uint64_t ulChangedTouched = controllerstate.ulButtonTouched ^ controllerstate.ulButtonTouched;
+            uint64_t ulChangedPressed = controllerstate.ulButtonPressed ^ controllerstate.ulButtonPressed;
+
+            /*
+            if (controllerstate.rAxis[0].x != openhmd.... || controllerstate.rAxis[0].y != )
+                controllerstate->TrackedDeviceAxisUpdated(???, 0, NewState.rAxis[0]);
+            }
+
+            controllerstate.rAxis[0].x = openhmd...
+            controllerstate.rAxis[0].y =
+            controllerstate.rAxis[1].x =
+            controllerstate.rAxis[1].y =
+             */
+
+
+            return controllerstate;
+        }
+
+        bool TriggerHapticPulse( uint32_t unAxisId, uint16_t usPulseDurationMicroseconds ) {
+            return false;
+        }
+
 
 private:
 	vr::TrackedDeviceIndex_t m_unObjectId;
