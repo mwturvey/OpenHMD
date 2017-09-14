@@ -425,29 +425,27 @@ public:
 		pose.result = TrackingResult_Running_OK;
 		pose.deviceIsConnected = true;
 
-
                 ohmd_ctx_update(ctx);
                 float zero[] = {.0, .0, .0, 1};
 
                 ohmd_device_setf(hmd, OHMD_ROTATION_QUAT, zero);
                 ohmd_device_setf(hmd, OHMD_POSITION_VECTOR, zero);
 
+                //TODO: why inverted?
                 float quat[4];
                 ohmd_device_getf(hmd, OHMD_ROTATION_QUAT, quat);
+                pose.qRotation.x = quat[0];
+                pose.qRotation.y = quat[1];
+                pose.qRotation.z = quat[2];
+                pose.qRotation.w = quat[3];
+
+                float pos[3];
+                ohmd_device_getf(hmd, OHMD_POSITION_VECTOR, pos);
+                pose.vecPosition[0] = pos[0];
+                pose.vecPosition[1] = pos[1];
+                pose.vecPosition[2] = pos[2];
+
                 //printf("ohmd rotation quat %f %f %f %f\n", quat[0], quat[1], quat[2], quat[3]);
-
-                // CAREFUL: w x y z
-                //glm::quat rotation(quat[3], quat[0], quat[1], quat[2]);
-                //glm::mat3 m = glm::mat3_cast(rotation);
-
-                //TODO: why inverted?
-                HmdQuaternion_t openvrquat{
-                    .w = quat[3],
-                    .x = quat[0],
-                    .y = quat[1],
-                    .z = quat[2]
-                };
-                pose.qRotation = openvrquat;
 
                 pose.qWorldFromDriverRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
                 pose.qDriverFromHeadRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
