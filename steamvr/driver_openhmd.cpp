@@ -167,10 +167,131 @@ void CWatchdogDriver_OpenHMD::Cleanup()
 }
 
 
-//-----------------------------------------------------------------------------
-// Purpose:
-//-----------------------------------------------------------------------------
-class COpenHMDDeviceDriver : public vr::ITrackedDeviceServerDriver, public vr::IVRDisplayComponent, public vr::IVRControllerComponent
+class COpenHMDDeviceDriverController : public vr::ITrackedDeviceServerDriver, public vr::IVRControllerComponent {
+public:
+
+    int index;
+    COpenHMDDeviceDriverController(int index) : index(index) {
+
+    }
+    virtual EVRInitError Activate( vr::TrackedDeviceIndex_t unObjectId )
+    {
+        m_unObjectId = unObjectId;
+        return VRInitError_None;
+    }
+
+    virtual void Deactivate()
+    {
+        m_unObjectId = vr::k_unTrackedDeviceIndexInvalid;
+    }
+
+    virtual void EnterStandby()
+    {
+    }
+
+    void *GetComponent( const char *pchComponentNameAndVersion )
+    {
+
+        if (!strcmp(pchComponentNameAndVersion, vr::IVRControllerComponent_Version))
+        {
+            return (vr::IVRControllerComponent*)this;
+        }
+
+        return NULL;
+    }
+
+    /** debug request from a client */
+    virtual void DebugRequest( const char *pchRequest, char *pchResponseBuffer, uint32_t unResponseBufferSize )
+    {
+        if( unResponseBufferSize >= 1 )
+            pchResponseBuffer[0] = 0;
+    }
+
+    DriverPose_t GetPose()
+    {
+        DriverPose_t pose = { 0 };
+        pose.poseIsValid = true;
+        pose.result = TrackingResult_Running_OK;
+        pose.deviceIsConnected = true;
+
+        //TODO: Wait until openhmd controller api https://github.com/OpenHMD/OpenHMD/pull/93 gets merged
+        /*
+        ohmd_ctx_update(ctx);
+
+        //TODO: why inverted?
+        float quat[4];
+        ohmd_device_getf(hmd, OHMD_ROTATION_QUAT, quat);
+        pose.qRotation.x = quat[0];
+        pose.qRotation.y = quat[1];
+        pose.qRotation.z = quat[2];
+        pose.qRotation.w = quat[3];
+
+        float pos[3];
+        ohmd_device_getf(hmd, OHMD_POSITION_VECTOR, pos);
+        pose.vecPosition[0] = pos[0];
+        pose.vecPosition[1] = pos[1];
+        pose.vecPosition[2] = pos[2];
+
+        //printf("ohmd rotation quat %f %f %f %f\n", quat[0], quat[1], quat[2], quat[3]);
+        */
+        pose.qWorldFromDriverRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
+        pose.qDriverFromHeadRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
+
+        return pose;
+    }
+
+    VRControllerState_t controllerstate;
+    VRControllerState_t GetControllerState() {
+        return controllerstate;
+
+        controllerstate.unPacketNum = controllerstate.unPacketNum + 1;
+        /* //TODO: buttons
+         *   if (ohmd_button_state) {
+         *       state.ulButtonPressed |= vr::ButtonMaskFromId(k_EButton_Button1);
+    }
+    // other buttons ...
+    */
+
+        //TODO: nolo says when a button was pressed a button was also touched. is that so?
+        controllerstate.ulButtonTouched |= controllerstate.ulButtonPressed;
+
+        uint64_t ulChangedTouched = controllerstate.ulButtonTouched ^ controllerstate.ulButtonTouched;
+        uint64_t ulChangedPressed = controllerstate.ulButtonPressed ^ controllerstate.ulButtonPressed;
+
+        /*
+         *   if (controllerstate.rAxis[0].x != openhmd.... || controllerstate.rAxis[0].y != )
+         *       controllerstate->TrackedDeviceAxisUpdated(???, 0, NewState.rAxis[0]);
+    }
+
+        controllerstate.rAxis[0].x = openhmd...
+        controllerstate.rAxis[0].y =
+        controllerstate.rAxis[1].x =
+        controllerstate.rAxis[1].y =
+        */
+        return controllerstate;
+    }
+
+    bool TriggerHapticPulse( uint32_t unAxisId, uint16_t usPulseDurationMicroseconds ) {
+        return false;
+    }
+
+    std::string GetSerialNumber() const { return m_sSerialNumber; }
+
+    bool exists() {
+        //TODO: return false when there's no controller with the given index
+        return true;
+    }
+
+private:
+    vr::TrackedDeviceIndex_t m_unObjectId;
+    vr::PropertyContainerHandle_t m_ulPropertyContainer;
+
+    //vrmonitor segfaults when two controllers have the same serial number
+    std::string m_sSerialNumber = "Controller serial number " + std::to_string(index);
+    std::string m_sModelNumber = "Controller model number " + std::to_string(index);
+};
+
+class COpenHMDDeviceDriver : public vr::ITrackedDeviceServerDriver, public vr::IVRDisplayComponent
 {
 public:
     ohmd_context* ctx;
@@ -343,14 +464,7 @@ public:
 			return (vr::IVRDisplayComponent*)this;
 		}
 
-		if (!strcmp(pchComponentNameAndVersion, vr::IVRControllerComponent_Version))
-                {
-                    return (vr::IVRControllerComponent*)this;
-                }
-
-                return NULL;
-
-		// override this to add a component to a driver
+                // override this to add a component to a driver
 		return NULL;
 	}
 
@@ -470,43 +584,6 @@ public:
 
 	std::string GetSerialNumber() const { return m_sSerialNumber; }
 
-	VRControllerState_t controllerstate;
-	VRControllerState_t GetControllerState() {
-
-            controllerstate.unPacketNum = controllerstate.unPacketNum + 1;
-            /* //TODO: buttons
-            if (ohmd_button_state) {
-                state.ulButtonPressed |= vr::ButtonMaskFromId(k_EButton_Button1);
-            }
-            // other buttons ...
-            */
-
-            //TODO: nolo says when a button was pressed a button was also touched. is that so?
-            controllerstate.ulButtonTouched |= controllerstate.ulButtonPressed;
-
-            uint64_t ulChangedTouched = controllerstate.ulButtonTouched ^ controllerstate.ulButtonTouched;
-            uint64_t ulChangedPressed = controllerstate.ulButtonPressed ^ controllerstate.ulButtonPressed;
-
-            /*
-            if (controllerstate.rAxis[0].x != openhmd.... || controllerstate.rAxis[0].y != )
-                controllerstate->TrackedDeviceAxisUpdated(???, 0, NewState.rAxis[0]);
-            }
-
-            controllerstate.rAxis[0].x = openhmd...
-            controllerstate.rAxis[0].y =
-            controllerstate.rAxis[1].x =
-            controllerstate.rAxis[1].y =
-             */
-
-
-            return controllerstate;
-        }
-
-        bool TriggerHapticPulse( uint32_t unAxisId, uint16_t usPulseDurationMicroseconds ) {
-            return false;
-        }
-
-
 private:
 	vr::TrackedDeviceIndex_t m_unObjectId;
 	vr::PropertyContainerHandle_t m_ulPropertyContainer;
@@ -532,8 +609,7 @@ class CServerDriver_OpenHMD: public IServerTrackedDeviceProvider
 {
 public:
 	CServerDriver_OpenHMD()
-		: m_pOpenHMDHmdLatest( NULL )
-		, m_bEnableOpenHMDDriver( false )
+		: m_OpenHMDDeviceDriver( NULL )
 	{
 	}
 
@@ -546,37 +622,46 @@ public:
 	virtual void LeaveStandby()  {}
 
 private:
-	COpenHMDDeviceDriver *m_pOpenHMDHmdLatest;
-	
-	bool m_bEnableOpenHMDDriver;
+	COpenHMDDeviceDriver *m_OpenHMDDeviceDriver;
+        COpenHMDDeviceDriverController *m_OpenHMDDeviceDriverControllerL;
+        COpenHMDDeviceDriverController *m_OpenHMDDeviceDriverControllerR;
 };
 
 CServerDriver_OpenHMD g_serverDriverOpenHMD;
-
 
 EVRInitError CServerDriver_OpenHMD::Init( vr::IVRDriverContext *pDriverContext )
 {
 	VR_INIT_SERVER_DRIVER_CONTEXT( pDriverContext );
 	InitDriverLog( vr::VRDriverLog() );
 
-	m_pOpenHMDHmdLatest = new COpenHMDDeviceDriver();
-	vr::VRServerDriverHost()->TrackedDeviceAdded( m_pOpenHMDHmdLatest->GetSerialNumber().c_str(), vr::TrackedDeviceClass_HMD, m_pOpenHMDHmdLatest );
+	m_OpenHMDDeviceDriver = new COpenHMDDeviceDriver();
+	vr::VRServerDriverHost()->TrackedDeviceAdded( m_OpenHMDDeviceDriver->GetSerialNumber().c_str(), vr::TrackedDeviceClass_HMD, m_OpenHMDDeviceDriver );
+
+        m_OpenHMDDeviceDriverControllerL = new COpenHMDDeviceDriverController(0);
+        m_OpenHMDDeviceDriverControllerR = new COpenHMDDeviceDriverController(1);
+        if (m_OpenHMDDeviceDriverControllerL->exists()) {
+            vr::VRServerDriverHost()->TrackedDeviceAdded( m_OpenHMDDeviceDriverControllerL->GetSerialNumber().c_str(), vr::TrackedDeviceClass_Controller, m_OpenHMDDeviceDriverControllerL );
+        }
+        if (m_OpenHMDDeviceDriverControllerR->exists()) {
+            vr::VRServerDriverHost()->TrackedDeviceAdded(  m_OpenHMDDeviceDriverControllerR->GetSerialNumber().c_str(), vr::TrackedDeviceClass_Controller, m_OpenHMDDeviceDriverControllerR );
+        }
+
 	return VRInitError_None;
 }
 
 void CServerDriver_OpenHMD::Cleanup()
 {
 	CleanupDriverLog();
-	delete m_pOpenHMDHmdLatest;
-	m_pOpenHMDHmdLatest = NULL;
+	delete m_OpenHMDDeviceDriver;
+	m_OpenHMDDeviceDriver = NULL;
 }
 
 
 void CServerDriver_OpenHMD::RunFrame()
 {
-	if ( m_pOpenHMDHmdLatest )
+	if ( m_OpenHMDDeviceDriver )
 	{
-		m_pOpenHMDHmdLatest->RunFrame();
+		m_OpenHMDDeviceDriver->RunFrame();
 	}
 }
 
