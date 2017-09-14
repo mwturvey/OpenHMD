@@ -24,6 +24,7 @@ set_target_properties( driver_openhmd
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/linux64"
 )
 
-configure_file(driver.vrdrivermanifest ${CMAKE_BINARY_DIR} COPYONLY)
+file(COPY driver.vrdrivermanifest DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY resources DESTINATION ${CMAKE_BINARY_DIR})
 
 #setTargetOutputDirectory(${TARGET_NAME})
