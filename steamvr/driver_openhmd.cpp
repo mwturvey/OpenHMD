@@ -77,7 +77,7 @@ inline void HmdMatrix_SetIdentity( HmdMatrix34_t *pMatrix )
 
 
 // keys for use with the settings API
-static const char * const k_pch_Sample_Section = "driver_sample";
+static const char * const k_pch_Sample_Section = "driver_openhmd";
 static const char * const k_pch_Sample_SerialNumber_String = "serialNumber";
 static const char * const k_pch_Sample_ModelNumber_String = "modelNumber";
 static const char * const k_pch_Sample_WindowX_Int32 = "windowX";
@@ -181,32 +181,33 @@ public:
                 // Probe for devices
                 int num_devices = ohmd_ctx_probe(ctx);
                 if(num_devices < 0){
-                    printf("failed to probe devices: %s\n", ohmd_ctx_get_error(ctx));
+                    DriverLog("failed to probe devices: %s\n", ohmd_ctx_get_error(ctx));
                 }
 
                 printf("num devices: %d\n\n", num_devices);
 
                 // Print device information
                 for(int i = 0; i < num_devices; i++){
-                    printf("device %d\n", i);
-                    printf("  vendor:  %s\n", ohmd_list_gets(ctx, i, OHMD_VENDOR));
-                    printf("  product: %s\n", ohmd_list_gets(ctx, i, OHMD_PRODUCT));
-                    printf("  path:    %s\n\n", ohmd_list_gets(ctx, i, OHMD_PATH));
+                    DriverLog("device %d\n", i);
+                    DriverLog("  vendor:  %s\n", ohmd_list_gets(ctx, i, OHMD_VENDOR));
+                    DriverLog("  product: %s\n", ohmd_list_gets(ctx, i, OHMD_PRODUCT));
+                    DriverLog("  path:    %s\n\n", ohmd_list_gets(ctx, i, OHMD_PATH));
                 }
 
                 // Open default device (0)
                 hmd = ohmd_list_open_device(ctx, 0);
 
                 if(!hmd){
-                    printf("failed to open device: %s\n", ohmd_ctx_get_error(ctx));
+                    DriverLog("failed to open device: %s\n", ohmd_ctx_get_error(ctx));
                 }
 
                 // Print hardware information for the opened device
                 int ivals[2];
                 ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, ivals);
                 ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, ivals + 1);
-                printf("resolution:              %i x %i\n", ivals[0], ivals[1]);
+                DriverLog("resolution:              %i x %i\n", ivals[0], ivals[1]);
 
+                /*
                 print_infof(hmd, "hsize:",            1, OHMD_SCREEN_HORIZONTAL_SIZE);
                 print_infof(hmd, "vsize:",            1, OHMD_SCREEN_VERTICAL_SIZE);
                 print_infof(hmd, "lens separation:",  1, OHMD_LENS_HORIZONTAL_SEPARATION);
@@ -218,6 +219,7 @@ public:
                 print_infof(hmd, "distortion k:",     6, OHMD_DISTORTION_K);
 
                 print_infoi(hmd, "digital button count:", 1, OHMD_BUTTON_COUNT);
+                */
 
 		m_unObjectId = vr::k_unTrackedDeviceIndexInvalid;
 		m_ulPropertyContainer = vr::k_ulInvalidPropertyContainer;
@@ -229,16 +231,26 @@ public:
 		vr::VRSettings()->GetString( k_pch_Sample_Section, k_pch_Sample_SerialNumber_String, buf, sizeof( buf ) );
 		m_sSerialNumber = buf;
 
-		vr::VRSettings()->GetString( k_pch_Sample_Section, k_pch_Sample_ModelNumber_String, buf, sizeof( buf ) );
-		m_sModelNumber = buf;
+		//vr::VRSettings()->GetString( k_pch_Sample_Section, k_pch_Sample_ModelNumber_String, buf, sizeof( buf ) );
+                strcpy(buf, "OpenHMD: ");
+                strcat(buf, ohmd_list_gets(ctx, 0, OHMD_PRODUCT));
+                m_sModelNumber = buf;
 
-		m_nWindowX = vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_WindowX_Int32 );
-		m_nWindowY = vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_WindowY_Int32 );
-		m_nWindowWidth = vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_WindowWidth_Int32 );
-		m_nWindowHeight = vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_WindowHeight_Int32 );
-		m_nRenderWidth = vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_RenderWidth_Int32 );
-		m_nRenderHeight = vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_RenderHeight_Int32 );
-		m_flSecondsFromVsyncToPhotons = vr::VRSettings()->GetFloat( k_pch_Sample_Section, k_pch_Sample_SecondsFromVsyncToPhotons_Float );
+                //TODO: real window offset
+		m_nWindowX = 1920; //vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_WindowX_Int32 );
+		m_nWindowY = 0; //vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_WindowY_Int32 );
+		//m_nWindowWidth = vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_WindowWidth_Int32 );
+		//m_nWindowHeight = vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_WindowHeight_Int32 );
+                ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, &m_nWindowWidth);
+                ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, &m_nWindowHeight );
+		//m_nRenderWidth = vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_RenderWidth_Int32 );
+		//m_nRenderHeight = vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_RenderHeight_Int32 );
+                ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, &m_nRenderWidth);
+                ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, &m_nRenderHeight );
+                // TODO: real render target size
+                m_nRenderWidth /= 2;
+                m_nRenderHeight /= 2;
+                m_flSecondsFromVsyncToPhotons = vr::VRSettings()->GetFloat( k_pch_Sample_Section, k_pch_Sample_SecondsFromVsyncToPhotons_Float );
 		m_flDisplayFrequency = vr::VRSettings()->GetFloat( k_pch_Sample_Section, k_pch_Sample_DisplayFrequency_Float );
 
 		DriverLog( "driver_null: Serial Number: %s\n", m_sSerialNumber.c_str() );
@@ -246,7 +258,7 @@ public:
 		DriverLog( "driver_null: Window: %d %d %d %d\n", m_nWindowX, m_nWindowY, m_nWindowWidth, m_nWindowHeight );
 		DriverLog( "driver_null: Render Target: %d %d\n", m_nRenderWidth, m_nRenderHeight );
 		DriverLog( "driver_null: Seconds from Vsync to Photons: %f\n", m_flSecondsFromVsyncToPhotons );
-		DriverLog( "driver_null: Display Frequency: %f\n", m_flDisplayFrequency );
+                                                DriverLog( "driver_null: Display Frequency: %f\n", m_flDisplayFrequency );
 		DriverLog( "driver_null: IPD: %f\n", m_flIPD );
 	}
 
@@ -297,19 +309,19 @@ public:
 		// Thus "Prop_NamedIconPathDeviceAlertLow_String" in each model's block represent a specialization specific for that "model".
 		// Keys in "Model-v Defaults" are an example of mapping to the same states, and here all map to "Prop_NamedIconPathDeviceOff_String".
 		//
-		bool bSetupIconUsingExternalResourceFile = true;
+		bool bSetupIconUsingExternalResourceFile = false;
 		if ( !bSetupIconUsingExternalResourceFile )
 		{
 			// Setup properties directly in code.
 			// Path values are of the form {drivername}\icons\some_icon_filename.png
-			vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceOff_String, "{sample}/icons/headset_sample_status_off.png" );
-			vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceSearching_String, "{sample}/icons/headset_sample_status_searching.gif" );
-			vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceSearchingAlert_String, "{sample}/icons/headset_sample_status_searching_alert.gif" );
-			vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceReady_String, "{sample}/icons/headset_sample_status_ready.png" );
-			vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceReadyAlert_String, "{sample}/icons/headset_sample_status_ready_alert.png" );
-			vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceNotReady_String, "{sample}/icons/headset_sample_status_error.png" );
-			vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceStandby_String, "{sample}/icons/headset_sample_status_standby.png" );
-			vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceAlertLow_String, "{sample}/icons/headset_sample_status_ready_low.png" );
+			vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceOff_String, "{openhmd}/icons/headset_sample_status_off.png" );
+                        vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceSearching_String, "{openhmd}/icons/headset_sample_status_searching.gif" );
+                        vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceSearchingAlert_String, "{openhmd}/icons/headset_sample_status_searching_alert.gif" );
+                        vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceReady_String, "{openhmd}/icons/headset_sample_status_ready.png" );
+                        vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceReadyAlert_String, "{openhmd}/icons/headset_sample_status_ready_alert.png" );
+                        vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceNotReady_String, "{openhmd}/icons/headset_sample_status_error.png" );
+                        vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceStandby_String, "{openhmd}/icons/headset_sample_status_standby.png" );
+                        vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceAlertLow_String, "{openhmd}/icons/headset_sample_status_ready_low.png" );
 		}
 
 		return VRInitError_None;
@@ -406,17 +418,35 @@ public:
 		return coordinates;
 	}
 
-	virtual DriverPose_t GetPose() 
+	DriverPose_t GetPose()
 	{
 		DriverPose_t pose = { 0 };
 		pose.poseIsValid = true;
 		pose.result = TrackingResult_Running_OK;
 		pose.deviceIsConnected = true;
 
-		pose.qWorldFromDriverRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
-		pose.qDriverFromHeadRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
-		
 
+                ohmd_ctx_update(ctx);
+                float zero[] = {.0, .0, .0, 1};
+
+                ohmd_device_setf(hmd, OHMD_ROTATION_QUAT, zero);
+                ohmd_device_setf(hmd, OHMD_POSITION_VECTOR, zero);
+
+                float quat[4];
+                ohmd_device_getf(hmd, OHMD_ROTATION_QUAT, quat);
+                //printf("ohmd rotation quat %f %f %f %f\n", quat[0], quat[1], quat[2], quat[3]);
+
+                // CAREFUL: w x y z
+                //glm::quat rotation(quat[3], quat[0], quat[1], quat[2]);
+                //glm::mat3 m = glm::mat3_cast(rotation);
+
+                HmdQuaternion_t openvrquat{quat[3], quat[0], quat[1], quat[2]};
+                pose.qWorldFromDriverRotation = openvrquat;
+                pose.qDriverFromHeadRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
+
+		
+                //pose.qWorldFromDriverRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
+                //pose.qDriverFromHeadRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
 		return pose;
 	}
 	
@@ -455,12 +485,12 @@ private:
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-class CServerDriver_Sample: public IServerTrackedDeviceProvider
+class CServerDriver_OpenHMD: public IServerTrackedDeviceProvider
 {
 public:
-	CServerDriver_Sample()
-		: m_pNullHmdLatest( NULL )
-		, m_bEnableNullDriver( false )
+	CServerDriver_OpenHMD()
+		: m_pOpenHMDHmdLatest( NULL )
+		, m_bEnableOpenHMDDriver( false )
 	{
 	}
 
@@ -473,37 +503,37 @@ public:
 	virtual void LeaveStandby()  {}
 
 private:
-	COpenHMDDeviceDriver *m_pNullHmdLatest;
+	COpenHMDDeviceDriver *m_pOpenHMDHmdLatest;
 	
-	bool m_bEnableNullDriver;
+	bool m_bEnableOpenHMDDriver;
 };
 
-CServerDriver_Sample g_serverDriverOpenHMD;
+CServerDriver_OpenHMD g_serverDriverOpenHMD;
 
 
-EVRInitError CServerDriver_Sample::Init( vr::IVRDriverContext *pDriverContext )
+EVRInitError CServerDriver_OpenHMD::Init( vr::IVRDriverContext *pDriverContext )
 {
 	VR_INIT_SERVER_DRIVER_CONTEXT( pDriverContext );
 	InitDriverLog( vr::VRDriverLog() );
 
-	m_pNullHmdLatest = new COpenHMDDeviceDriver();
-	vr::VRServerDriverHost()->TrackedDeviceAdded( m_pNullHmdLatest->GetSerialNumber().c_str(), vr::TrackedDeviceClass_HMD, m_pNullHmdLatest );
+	m_pOpenHMDHmdLatest = new COpenHMDDeviceDriver();
+	vr::VRServerDriverHost()->TrackedDeviceAdded( m_pOpenHMDHmdLatest->GetSerialNumber().c_str(), vr::TrackedDeviceClass_HMD, m_pOpenHMDHmdLatest );
 	return VRInitError_None;
 }
 
-void CServerDriver_Sample::Cleanup() 
+void CServerDriver_OpenHMD::Cleanup()
 {
 	CleanupDriverLog();
-	delete m_pNullHmdLatest;
-	m_pNullHmdLatest = NULL;
+	delete m_pOpenHMDHmdLatest;
+	m_pOpenHMDHmdLatest = NULL;
 }
 
 
-void CServerDriver_Sample::RunFrame()
+void CServerDriver_OpenHMD::RunFrame()
 {
-	if ( m_pNullHmdLatest )
+	if ( m_pOpenHMDHmdLatest )
 	{
-		m_pNullHmdLatest->RunFrame();
+		m_pOpenHMDHmdLatest->RunFrame();
 	}
 }
 
