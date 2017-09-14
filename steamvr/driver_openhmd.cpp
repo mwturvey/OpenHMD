@@ -279,7 +279,7 @@ public:
 
     bool exists() {
         //TODO: return false when there's no controller with the given index
-        return true;
+        return false;
     }
 
 private:
