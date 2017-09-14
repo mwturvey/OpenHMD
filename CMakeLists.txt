@@ -38,6 +38,8 @@ OPTION(OPENHMD_DRIVER_ANDROID "General Android driver" OFF)
 OPTION(OPENHMD_EXAMPLE_SIMPLE "Simple test binary" ON)
 OPTION(OPENHMD_EXAMPLE_SDL "SDL OpenGL test (outdated)" OFF)
 
+OPTION(OPENHMD_STEAMVR "SteamVR Plugin" ON)
+
 if(OPENHMD_DRIVER_OCULUS_RIFT)
 	set(openhmd_source_files ${openhmd_source_files}
 	${CMAKE_CURRENT_LIST_DIR}/src/drv_oculus_rift/rift.c
@@ -124,6 +126,10 @@ if (OPENHMD_EXAMPLE_SDL)
 	find_package(OpenGL REQUIRED)
 	add_subdirectory(./examples/opengl)
 endif (OPENHMD_EXAMPLE_SDL)
+
+if (OPENHMD_STEAMVR)
+	add_subdirectory(./steamvr)
+endif(OPENHMD_STEAMVR)
 
 if (UNIX)
 	set(LIBS ${LIBS} rt pthread)
