@@ -349,7 +349,10 @@ public:
 		m_flIPD = vr::VRSettings()->GetFloat( k_pch_SteamVR_Section, k_pch_SteamVR_IPD_Float );
 
 		char buf[1024];
-		vr::VRSettings()->GetString( k_pch_Sample_Section, k_pch_Sample_SerialNumber_String, buf, sizeof( buf ) );
+		//vr::VRSettings()->GetString( k_pch_Sample_Section, k_pch_Sample_SerialNumber_String, buf, sizeof( buf ) );
+                strcpy(buf, ohmd_list_gets(ctx, 0, OHMD_PRODUCT)); //whatever
+                strcat(buf, ": ");
+                strcat(buf, ohmd_list_gets(ctx, 0, OHMD_PATH));
 		m_sSerialNumber = buf;
 
 		//vr::VRSettings()->GetString( k_pch_Sample_Section, k_pch_Sample_ModelNumber_String, buf, sizeof( buf ) );
