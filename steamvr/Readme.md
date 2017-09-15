@@ -1,14 +1,22 @@
 SteamVR Plugin for OpenHMD Devices
 
 Build:
-Just run `cmake` and `make` in the OpenHMD directory. The OPENHMD_STEAMVR option is enabled by default.
+Run `cmake` and `make` for the OpenHMD base directory. The new OPENHMD_STEAMVR option is enabled by default. This will first build OpenHMD, and then the SteamVR plugin.
 
 Run:
 First register the driver with SteamVR:
 
-    ~/.local/share/Steam/SteamApps/common/SteamVR/bin/linux64/vrpathreg adddriver ~/OpenHMD/build/
+    ~/.local/share/Steam/SteamApps/common/SteamVR/bin/linux64/vrpathreg adddriver ~/OpenHMD
 
-Then copy the steamvr.vrsettings file that disables the lighthouse and oculus default driver:
+or
+
+    ~/.local/share/Steam/SteamApps/common/SteamVR/bin/linux64/vrpathreg adddriver ~/OpenHMD/build
+
+if you build in a separate build directory.
+
+The directory given to vrpathreg should contain `driver.vrdrivermanifest` and `bin/linux64/driver_openhmd.so` as a subdirectory.
+
+Then copy the steamvr.vrsettings file that disables the lighthouse and oculus default driver into Steam's config directory.
 
     cp ~/OpenHMD/steamvr/steamvr.vrsettings ~/.local/share/Steam/config/steamvr.vrsettings
 
