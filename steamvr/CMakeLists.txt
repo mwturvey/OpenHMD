@@ -15,7 +15,7 @@ add_library(${TARGET_NAME} SHARED
 target_link_libraries(${TARGET_NAME}
   ${OPENVR_LIBRARIES}
   ${CMAKE_DL_LIBS}
-  openhmd
+  openhmd-static
 )
 
 # don't add lib prefix to driver_openhmd.so
