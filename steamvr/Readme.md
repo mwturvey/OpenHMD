@@ -16,4 +16,3 @@ Don't forget to make a backup if you have special SteamVR settings. Now run Stea
 
 TODO:
 * implement controllers when openhmd controller api https://github.com/OpenHMD/OpenHMD/pull/93 is merged
-* implement distortion

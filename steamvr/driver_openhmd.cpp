@@ -14,6 +14,8 @@
 
 #include <openhmd.h>
 
+#include <math.h>
+
 using namespace vr;
 
 
@@ -532,13 +534,79 @@ public:
 
 	virtual DistortionCoordinates_t ComputeDistortion( EVREye eEye, float fU, float fV ) 
 	{
+
+            int hmd_w;
+            int hmd_h;
+            ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, &hmd_w);
+            ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, &hmd_h);
+            float ipd;
+            ohmd_device_getf(hmd, OHMD_EYE_IPD, &ipd);
+            float viewport_scale[2];
+            float distortion_coeffs[4];
+            float aberr_scale[3];
+            float sep;
+            float left_lens_center[2];
+            float right_lens_center[2];
+            //viewport is half the screen
+            ohmd_device_getf(hmd, OHMD_SCREEN_HORIZONTAL_SIZE, &(viewport_scale[0]));
+            viewport_scale[0] /= 2.0f;
+            ohmd_device_getf(hmd, OHMD_SCREEN_VERTICAL_SIZE, &(viewport_scale[1]));
+            //distortion coefficients
+            ohmd_device_getf(hmd, OHMD_UNIVERSAL_DISTORTION_K, &(distortion_coeffs[0]));
+            ohmd_device_getf(hmd, OHMD_UNIVERSAL_ABERRATION_K, &(aberr_scale[0]));
+            //calculate lens centers (assuming the eye separation is the distance betweenteh lense centers)
+            ohmd_device_getf(hmd, OHMD_LENS_HORIZONTAL_SEPARATION, &sep);
+            ohmd_device_getf(hmd, OHMD_LENS_VERTICAL_POSITION, &(left_lens_center[1]));
+            ohmd_device_getf(hmd, OHMD_LENS_VERTICAL_POSITION, &(right_lens_center[1]));
+            left_lens_center[0] = viewport_scale[0] - sep/2.0f;
+            right_lens_center[0] = sep/2.0f;
+            //asume calibration was for lens view to which ever edge of screen is further away from lens center
+            float warp_scale = (left_lens_center[0] > right_lens_center[0]) ? left_lens_center[0] : right_lens_center[0];
+            float warp_adj = 1.0f;
+
+            float lens_center[2];
+            lens_center[0] = (eEye == Eye_Left ? left_lens_center[0] : right_lens_center[0]);
+            lens_center[1] = (eEye == Eye_Left ? left_lens_center[1] : right_lens_center[1]);
+
+            float r[2];
+            r[0] = fU * viewport_scale[0] - lens_center[0];
+            r[1] = fV * viewport_scale[1] - lens_center[1];
+
+            r[0] /= warp_scale;
+            r[1] /= warp_scale;
+
+            float r_mag = sqrt(r[0] * r[0] + r[1] * r[1]);
+
+
+            float r_displaced[2];
+            r_displaced[0] = r[0] * (distortion_coeffs[3] + distortion_coeffs[2] * r_mag + distortion_coeffs[1] * r_mag * r_mag + distortion_coeffs[0] * r_mag * r_mag * r_mag);
+
+            r_displaced[1] = r[1] * (distortion_coeffs[3] + distortion_coeffs[2] * r_mag + distortion_coeffs[1] * r_mag * r_mag + distortion_coeffs[0] * r_mag * r_mag * r_mag);
+
+            r_displaced[0] *= warp_scale;
+            r_displaced[1] *= warp_scale;
+
+            float tc_r[2];
+            tc_r[0] = (lens_center[0] + aberr_scale[0] * r_displaced[0]) / viewport_scale[0];
+            tc_r[1] = (lens_center[1] + aberr_scale[0] * r_displaced[1]) / viewport_scale[1];
+
+            float tc_g[2];
+            tc_g[0] = (lens_center[0] + aberr_scale[1] * r_displaced[0]) / viewport_scale[0];
+            tc_g[1] = (lens_center[1] + aberr_scale[1] * r_displaced[1]) / viewport_scale[1];
+
+            float tc_b[2];
+            tc_b[0] = (lens_center[0] + aberr_scale[2] * r_displaced[0]) / viewport_scale[0];
+            tc_b[1] = (lens_center[1] + aberr_scale[2] * r_displaced[1]) / viewport_scale[1];
+
+            //DriverLog("Distort %f %f -> %f %f; %f %f %f %f\n", fU, fV, tc_b[0], tc_b[1], distortion_coeffs[0], distortion_coeffs[1], distortion_coeffs[2], distortion_coeffs[3]);
+
 		DistortionCoordinates_t coordinates;
-		coordinates.rfBlue[0] = fU;
-		coordinates.rfBlue[1] = fV;
-		coordinates.rfGreen[0] = fU;
-		coordinates.rfGreen[1] = fV;
-		coordinates.rfRed[0] = fU;
-		coordinates.rfRed[1] = fV;
+		coordinates.rfBlue[0] = tc_b[0];
+		coordinates.rfBlue[1] = tc_b[1];
+		coordinates.rfGreen[0] = tc_g[0];
+		coordinates.rfGreen[1] = tc_g[1];
+		coordinates.rfRed[0] = tc_r[0];
+		coordinates.rfRed[1] = tc_r[1];
 		return coordinates;
 	}
 
