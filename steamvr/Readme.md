@@ -24,3 +24,4 @@ Don't forget to make a backup if you have special SteamVR settings. Now run Stea
 
 TODO:
 * implement controllers when openhmd controller api https://github.com/OpenHMD/OpenHMD/pull/93 is merged
+* Perspective/eye separation. Possibly only GetProjectionRaw needs to be fixed: https://github.com/ValveSoftware/openvr/wiki/IVRSystem::GetProjectionRaw. SteamVR-OSVR does https://github.com/OSVR/SteamVR-OSVR/blob/52bd105d7175d1750e00344f41e12cc7cf76d188/src/OSVRTrackedHMD.cpp#L241
