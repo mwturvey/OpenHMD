@@ -435,21 +435,18 @@ public:
 		// Thus "Prop_NamedIconPathDeviceAlertLow_String" in each model's block represent a specialization specific for that "model".
 		// Keys in "Model-v Defaults" are an example of mapping to the same states, and here all map to "Prop_NamedIconPathDeviceOff_String".
 		//
-		bool bSetupIconUsingExternalResourceFile = false;
-		if ( !bSetupIconUsingExternalResourceFile )
-		{
-			// Setup properties directly in code.
-			// Path values are of the form {drivername}\icons\some_icon_filename.png
-			vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceOff_String, "{openhmd}/icons/headset_sample_status_off.png" );
-                        vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceSearching_String, "{openhmd}/icons/headset_sample_status_searching.gif" );
-                        vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceSearchingAlert_String, "{openhmd}/icons/headset_sample_status_searching_alert.gif" );
-                        vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceReady_String, "{openhmd}/icons/headset_sample_status_ready.png" );
-                        vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceReadyAlert_String, "{openhmd}/icons/headset_sample_status_ready_alert.png" );
-                        vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceNotReady_String, "{openhmd}/icons/headset_sample_status_error.png" );
-                        vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceStandby_String, "{openhmd}/icons/headset_sample_status_standby.png" );
-                        vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceAlertLow_String, "{openhmd}/icons/headset_sample_status_ready_low.png" );
-		}
 
+                // if we want to set our own icons
+                /*
+                vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceOff_String, "{openhmd}/icons/headset_sample_status_off.png" );
+                vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceSearching_String, "{openhmd}/icons/headset_sample_status_searching.gif" );
+                vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceSearchingAlert_String, "{openhmd}/icons/headset_sample_status_searching_alert.gif" );
+                vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceReady_String, "{openhmd}/icons/headset_sample_status_ready.png" );
+                vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceReadyAlert_String, "{openhmd}/icons/headset_sample_status_ready_alert.png" );
+                vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceNotReady_String, "{openhmd}/icons/headset_sample_status_error.png" );
+                vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceStandby_String, "{openhmd}/icons/headset_sample_status_standby.png" );
+                vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceAlertLow_String, "{openhmd}/icons/headset_sample_status_ready_low.png" );
+                */
 		return VRInitError_None;
 	}
 
@@ -619,7 +616,6 @@ public:
 
                 ohmd_ctx_update(ctx);
 
-                //TODO: why inverted?
                 float quat[4];
                 ohmd_device_getf(hmd, OHMD_ROTATION_QUAT, quat);
                 pose.qRotation.x = quat[0];
