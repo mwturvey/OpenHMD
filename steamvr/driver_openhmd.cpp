@@ -254,7 +254,6 @@ public:
 private:
     vr::TrackedDeviceIndex_t m_unObjectId;
 
-    //vrmonitor segfaults when two controllers have the same serial number
     std::string m_sSerialNumber = "Controller serial number " + std::to_string(index);
     std::string m_sModelNumber = "Controller model number " + std::to_string(index);
 };
@@ -267,15 +266,11 @@ public:
 	COpenHMDDeviceDriver(  )
 	{
                 ctx = ohmd_ctx_create();
-                // Probe for devices
                 int num_devices = ohmd_ctx_probe(ctx);
                 if(num_devices < 0){
                     DriverLog("failed to probe devices: %s\n", ohmd_ctx_get_error(ctx));
                 }
 
-                printf("num devices: %d\n\n", num_devices);
-
-                // Print device information
                 for(int i = 0; i < num_devices; i++){
                     DriverLog("device %d\n", i);
                     DriverLog("  vendor:  %s\n", ohmd_list_gets(ctx, i, OHMD_VENDOR));
@@ -290,7 +285,6 @@ public:
                     DriverLog("failed to open device: %s\n", ohmd_ctx_get_error(ctx));
                 }
 
-                // Print hardware information for the opened device
                 int ivals[2];
                 ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, ivals);
                 ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, ivals + 1);
@@ -314,24 +308,20 @@ public:
 		m_ulPropertyContainer = vr::k_ulInvalidPropertyContainer;
 
 		DriverLog( "Using settings values\n" );
-		//m_flIPD = vr::VRSettings()->GetFloat( k_pch_SteamVR_Section, k_pch_SteamVR_IPD_Float );
                 ohmd_device_getf(hmd, OHMD_EYE_IPD, &m_flIPD);
 
 		char buf[1024];
-		//vr::VRSettings()->GetString( k_pch_Sample_Section, k_pch_Sample_SerialNumber_String, buf, sizeof( buf ) );
                 strcpy(buf, ohmd_list_gets(ctx, 0, OHMD_PRODUCT)); //whatever
                 strcat(buf, ": ");
                 strcat(buf, ohmd_list_gets(ctx, 0, OHMD_PATH));
 		m_sSerialNumber = buf;
 
-		//vr::VRSettings()->GetString( k_pch_Sample_Section, k_pch_Sample_ModelNumber_String, buf, sizeof( buf ) );
                 strcpy(buf, "OpenHMD: ");
                 strcat(buf, ohmd_list_gets(ctx, 0, OHMD_PRODUCT));
                 m_sModelNumber = buf;
 
-                //TODO: real window offset
-		m_nWindowX = 1920; //vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_WindowX_Int32 );
-		m_nWindowY = 0; //vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_WindowY_Int32 );
+                m_nWindowX = 1920; //TODO: real window offset
+		m_nWindowY = 0;
                 ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, &m_nWindowWidth);
                 ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, &m_nWindowHeight );
                 ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, &m_nRenderWidth);
