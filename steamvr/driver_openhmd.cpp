@@ -51,46 +51,12 @@ void print_infoi(ohmd_device* hmd, const char* name, int len, ohmd_int_value val
     printf("\n");
 }
 
-inline HmdQuaternion_t HmdQuaternion_Init( double w, double x, double y, double z )
-{
-	HmdQuaternion_t quat;
-	quat.w = w;
-	quat.x = x;
-	quat.y = y;
-	quat.z = z;
-	return quat;
-}
-
-inline void HmdMatrix_SetIdentity( HmdMatrix34_t *pMatrix )
-{
-	pMatrix->m[0][0] = 1.f;
-	pMatrix->m[0][1] = 0.f;
-	pMatrix->m[0][2] = 0.f;
-	pMatrix->m[0][3] = 0.f;
-	pMatrix->m[1][0] = 0.f;
-	pMatrix->m[1][1] = 1.f;
-	pMatrix->m[1][2] = 0.f;
-	pMatrix->m[1][3] = 0.f;
-	pMatrix->m[2][0] = 0.f;
-	pMatrix->m[2][1] = 0.f;
-	pMatrix->m[2][2] = 1.f;
-	pMatrix->m[2][3] = 0.f;
-}
-
-
 // keys for use with the settings API
 static const char * const k_pch_Sample_Section = "driver_openhmd";
-static const char * const k_pch_Sample_SerialNumber_String = "serialNumber";
-static const char * const k_pch_Sample_ModelNumber_String = "modelNumber";
-static const char * const k_pch_Sample_WindowX_Int32 = "windowX";
-static const char * const k_pch_Sample_WindowY_Int32 = "windowY";
-static const char * const k_pch_Sample_WindowWidth_Int32 = "windowWidth";
-static const char * const k_pch_Sample_WindowHeight_Int32 = "windowHeight";
-static const char * const k_pch_Sample_RenderWidth_Int32 = "renderWidth";
-static const char * const k_pch_Sample_RenderHeight_Int32 = "renderHeight";
 static const char * const k_pch_Sample_SecondsFromVsyncToPhotons_Float = "secondsFromVsyncToPhotons";
 static const char * const k_pch_Sample_DisplayFrequency_Float = "displayFrequency";
 
+HmdQuaternion_t identityquat{ 1, 0, 0, 0};
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
@@ -236,8 +202,9 @@ public:
 
         //printf("ohmd rotation quat %f %f %f %f\n", quat[0], quat[1], quat[2], quat[3]);
         */
-        pose.qWorldFromDriverRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
-        pose.qDriverFromHeadRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
+
+        pose.qWorldFromDriverRotation = identityquat;
+        pose.qDriverFromHeadRotation = identityquat;
 
         return pose;
     }
@@ -286,7 +253,6 @@ public:
 
 private:
     vr::TrackedDeviceIndex_t m_unObjectId;
-    vr::PropertyContainerHandle_t m_ulPropertyContainer;
 
     //vrmonitor segfaults when two controllers have the same serial number
     std::string m_sSerialNumber = "Controller serial number " + std::to_string(index);
@@ -328,7 +294,7 @@ public:
                 int ivals[2];
                 ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, ivals);
                 ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, ivals + 1);
-                DriverLog("resolution:              %i x %i\n", ivals[0], ivals[1]);
+                //DriverLog("resolution:              %i x %i\n", ivals[0], ivals[1]);
 
                 /*
                 print_infof(hmd, "hsize:",            1, OHMD_SCREEN_HORIZONTAL_SIZE);
@@ -348,7 +314,8 @@ public:
 		m_ulPropertyContainer = vr::k_ulInvalidPropertyContainer;
 
 		DriverLog( "Using settings values\n" );
-		m_flIPD = vr::VRSettings()->GetFloat( k_pch_SteamVR_Section, k_pch_SteamVR_IPD_Float );
+		//m_flIPD = vr::VRSettings()->GetFloat( k_pch_SteamVR_Section, k_pch_SteamVR_IPD_Float );
+                ohmd_device_getf(hmd, OHMD_EYE_IPD, &m_flIPD);
 
 		char buf[1024];
 		//vr::VRSettings()->GetString( k_pch_Sample_Section, k_pch_Sample_SerialNumber_String, buf, sizeof( buf ) );
@@ -365,27 +332,28 @@ public:
                 //TODO: real window offset
 		m_nWindowX = 1920; //vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_WindowX_Int32 );
 		m_nWindowY = 0; //vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_WindowY_Int32 );
-		//m_nWindowWidth = vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_WindowWidth_Int32 );
-		//m_nWindowHeight = vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_WindowHeight_Int32 );
                 ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, &m_nWindowWidth);
                 ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, &m_nWindowHeight );
-		//m_nRenderWidth = vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_RenderWidth_Int32 );
-		//m_nRenderHeight = vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_RenderHeight_Int32 );
                 ohmd_device_geti(hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, &m_nRenderWidth);
                 ohmd_device_geti(hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, &m_nRenderHeight );
-                // TODO: real render target size
-                m_nRenderWidth /= 2;
-                m_nRenderHeight /= 2;
+                //m_nRenderWidth /= 2;
+                //m_nRenderHeight /= 2;
+
                 m_flSecondsFromVsyncToPhotons = vr::VRSettings()->GetFloat( k_pch_Sample_Section, k_pch_Sample_SecondsFromVsyncToPhotons_Float );
+                //TODO: find actual frequency somehow (from openhmd?)
 		m_flDisplayFrequency = vr::VRSettings()->GetFloat( k_pch_Sample_Section, k_pch_Sample_DisplayFrequency_Float );
 
-		DriverLog( "driver_null: Serial Number: %s\n", m_sSerialNumber.c_str() );
-		DriverLog( "driver_null: Model Number: %s\n", m_sModelNumber.c_str() );
-		DriverLog( "driver_null: Window: %d %d %d %d\n", m_nWindowX, m_nWindowY, m_nWindowWidth, m_nWindowHeight );
-		DriverLog( "driver_null: Render Target: %d %d\n", m_nRenderWidth, m_nRenderHeight );
-		DriverLog( "driver_null: Seconds from Vsync to Photons: %f\n", m_flSecondsFromVsyncToPhotons );
-                                                DriverLog( "driver_null: Display Frequency: %f\n", m_flDisplayFrequency );
-		DriverLog( "driver_null: IPD: %f\n", m_flIPD );
+		DriverLog( "driver_openhmd: Serial Number: %s\n", m_sSerialNumber.c_str() );
+		DriverLog( "driver_openhmd: Model Number: %s\n", m_sModelNumber.c_str() );
+		DriverLog( "driver_openhmd: Window: %d %d %d %d\n", m_nWindowX, m_nWindowY, m_nWindowWidth, m_nWindowHeight );
+		DriverLog( "driver_openhmd: Render Target: %d %d\n", m_nRenderWidth, m_nRenderHeight );
+		DriverLog( "driver_openhmd: Seconds from Vsync to Photons: %f\n", m_flSecondsFromVsyncToPhotons );
+                                                DriverLog( "driver_openhmd: Display Frequency: %f\n", m_flDisplayFrequency );
+		DriverLog( "driver_openhmd: IPD: %f\n", m_flIPD );
+
+                float distortion_coeffs[4];
+                ohmd_device_getf(hmd, OHMD_UNIVERSAL_DISTORTION_K, &(distortion_coeffs[0]));
+                DriverLog("driver_openhmd: Distortion values a=%f b=%f c=%f d=%f\n", distortion_coeffs[0], distortion_coeffs[1], distortion_coeffs[2], distortion_coeffs[3]);
 	}
 
 	virtual ~COpenHMDDeviceDriver()
@@ -398,7 +366,6 @@ public:
 		m_unObjectId = unObjectId;
 		m_ulPropertyContainer = vr::VRProperties()->TrackedDeviceToPropertyContainer( m_unObjectId );
 
-
 		vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, Prop_ModelNumber_String, m_sModelNumber.c_str() );
 		vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, Prop_RenderModelName_String, m_sModelNumber.c_str() );
 		vr::VRProperties()->SetFloatProperty( m_ulPropertyContainer, Prop_UserIpdMeters_Float, m_flIPD );
@@ -406,11 +373,39 @@ public:
 		vr::VRProperties()->SetFloatProperty( m_ulPropertyContainer, Prop_DisplayFrequency_Float, m_flDisplayFrequency );
 		vr::VRProperties()->SetFloatProperty( m_ulPropertyContainer, Prop_SecondsFromVsyncToPhotons_Float, m_flSecondsFromVsyncToPhotons );
 
+                float sep;
+                //ohmd_device_getf(hmd, OHMD_LENS_HORIZONTAL_SEPARATION, &sep);
+                //DriverLog("sep %f\n", sep);
+                //vr::VRProperties()->SetFloatProperty( m_ulPropertyContainer, Prop_LensCenterRightU_Float, -sep);
+                /*
+                float left_lens_center[2];
+                float right_lens_center[2];
+                float sep;
+                ohmd_device_getf(hmd, OHMD_LENS_VERTICAL_POSITION, &(left_lens_center[1]));
+                ohmd_device_getf(hmd, OHMD_LENS_VERTICAL_POSITION, &(right_lens_center[1]));
+                ohmd_device_getf(hmd, OHMD_LENS_HORIZONTAL_SEPARATION, &sep);
+
+                //vr::VRProperties()->SetFloatProperty( m_ulPropertyContainer, Prop_LensCenterLeftU_Float, left_lens_center[0]);
+                vr::VRProperties()->SetFloatProperty( m_ulPropertyContainer, Prop_LensCenterLeftV_Float, left_lens_center[1]);
+
+                //vr::VRProperties()->SetFloatProperty( m_ulPropertyContainer, Prop_LensCenterRightU_Float, right_lens_center[0]);
+                vr::VRProperties()->SetFloatProperty( m_ulPropertyContainer, Prop_LensCenterRightV_Float, right_lens_center[1]);
+
+                DriverLog("Prop_LensCenterLeftU_Float %f %f %f %f %f %f",
+                          vr::VRProperties()->GetFloatProperty(m_ulPropertyContainer, Prop_LensCenterLeftU_Float),
+                          vr::VRProperties()->GetFloatProperty(m_ulPropertyContainer, Prop_LensCenterLeftV_Float),
+                          vr::VRProperties()->GetFloatProperty(m_ulPropertyContainer, Prop_LensCenterRightU_Float),
+                          vr::VRProperties()->GetFloatProperty(m_ulPropertyContainer, Prop_LensCenterRightV_Float),
+                          left_lens_center[0],
+                          left_lens_center[1]
+                         );
+                */
+
 		// return a constant that's not 0 (invalid) or 1 (reserved for Oculus)
 		vr::VRProperties()->SetUint64Property( m_ulPropertyContainer, Prop_CurrentUniverseId_Uint64, 2 );
 
 		// avoid "not fullscreen" warnings from vrmonitor
-		vr::VRProperties()->SetBoolProperty( m_ulPropertyContainer, Prop_IsOnDesktop_Bool, false );
+		//vr::VRProperties()->SetBoolProperty( m_ulPropertyContainer, Prop_IsOnDesktop_Bool, false );
 
 		// Icons can be configured in code or automatically configured by an external file "drivername\resources\driver.vrresources".
 		// Icon properties NOT configured in code (post Activate) are then auto-configured by the optional presence of a driver's "drivername\resources\driver.vrresources".
@@ -465,8 +460,6 @@ public:
 		{
 			return (vr::IVRDisplayComponent*)this;
 		}
-
-                // override this to add a component to a driver
 		return NULL;
 	}
 
@@ -474,7 +467,6 @@ public:
 	{
 	}
 
-	/** debug request from a client */
 	virtual void DebugRequest( const char *pchRequest, char *pchResponseBuffer, uint32_t unResponseBufferSize ) 
 	{
 		if( unResponseBufferSize >= 1 )
@@ -496,7 +488,7 @@ public:
 
 	virtual bool IsDisplayRealDisplay() 
 	{
-		return false;
+		return true;
 	}
 
 	virtual void GetRecommendedRenderTargetSize( uint32_t *pnWidth, uint32_t *pnHeight ) 
@@ -523,10 +515,19 @@ public:
 
 	virtual void GetProjectionRaw( EVREye eEye, float *pfLeft, float *pfRight, float *pfTop, float *pfBottom ) 
 	{
-		*pfLeft = -1.0;
-		*pfRight = 1.0;
-		*pfTop = -1.0;
-		*pfBottom = 1.0;	
+            float sep;
+            ohmd_device_getf(hmd, OHMD_LENS_HORIZONTAL_SEPARATION, &sep); //mabye use this
+            if (eEye == Eye_Left) {
+                *pfLeft = -1.0;
+                *pfRight = 1.0;
+                *pfTop = -1.0;
+                *pfBottom = 1.0;
+            } else {
+                *pfLeft = -1.0;
+                *pfRight = 1.0;
+                *pfTop = -1.0;
+                *pfBottom = 1.0;
+            }
 	}
 
 	virtual DistortionCoordinates_t ComputeDistortion( EVREye eEye, float fU, float fV ) 
@@ -559,7 +560,6 @@ public:
             right_lens_center[0] = sep/2.0f;
             //asume calibration was for lens view to which ever edge of screen is further away from lens center
             float warp_scale = (left_lens_center[0] > right_lens_center[0]) ? left_lens_center[0] : right_lens_center[0];
-            float warp_adj = 1.0f;
 
             float lens_center[2];
             lens_center[0] = (eEye == Eye_Left ? left_lens_center[0] : right_lens_center[0]);
@@ -631,8 +631,8 @@ public:
 
                 //printf("ohmd rotation quat %f %f %f %f\n", quat[0], quat[1], quat[2], quat[3]);
 
-                pose.qWorldFromDriverRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
-                pose.qDriverFromHeadRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
+                pose.qWorldFromDriverRotation = identityquat;
+                pose.qDriverFromHeadRotation = identityquat;
 
 		return pose;
 	}
