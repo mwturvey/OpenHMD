@@ -129,6 +129,7 @@ if (OPENHMD_EXAMPLE_SDL)
 endif (OPENHMD_EXAMPLE_SDL)
 
 if (OPENHMD_STEAMVR)
+        add_subdirectory(./steamvr/external/openvr)
 	add_subdirectory(./steamvr)
 endif(OPENHMD_STEAMVR)
 
