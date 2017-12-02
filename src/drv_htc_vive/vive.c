@@ -417,10 +417,11 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 	priv->base.close = close_device;
 	priv->base.getf = getf;
 
+	/*
 	ofusion_init(&priv->sensor_fusion);
 
 	ofq_init(&priv->gyro_q, 128);
-
+*/
 	return (ohmd_device*)priv;
 
 cleanup:
