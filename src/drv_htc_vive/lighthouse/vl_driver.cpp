@@ -91,17 +91,17 @@ void print_device_info(hid_device* dev) {
 
 static char* _hid_to_unix_path(char* path)
 {
-       const int len = 4;
-       char bus [len];
-       char dev [len];
-       char *result = new char[20 + 1];
+	char bus [5];
+	char dev [5];
+	char *result = (char*) malloc( sizeof(char) * ( 20 + 1 ) );
 
-       sprintf (bus, "%.*s\n", len, path);
-       sprintf (dev, "%.*s\n", len, path + 5);
+	sprintf (bus, "%.*s", 4, path);
+	sprintf (dev, "%.*s", 4, path + 5);
 
-       sprintf (result, "/dev/bus/usb/%03d/%03d",
-               (int)strtol(bus, NULL, 16),
-               (int)strtol(dev, NULL, 16));
+	sprintf (result, "/dev/bus/usb/%03d/%03d",
+		 (int)strtol(bus, NULL, 16),
+		 (int)strtol(dev, NULL, 16));
+       //printf("Unix Path: %s %s %s %s\n", path, bus, dev, result);
        return result;
 }
 

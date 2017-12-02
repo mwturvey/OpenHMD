@@ -1,1 +1,1 @@
-int vivelibre_poll();
+int* vivelibre_poll();

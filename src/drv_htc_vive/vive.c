@@ -109,6 +109,7 @@ vive_sensor_sample* get_next_sample(vive_sensor_packet* pkt, int last_seq)
 
 static void update_device(ohmd_device* device)
 {
+	return;
 	vive_priv* priv = (vive_priv*)device;
 
 	int size = 0;
@@ -160,15 +161,18 @@ static void update_device(ohmd_device* device)
 static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 {
 	vive_priv* priv = (vive_priv*)device;
-
+	int* pos;
 	switch(type){
 	case OHMD_ROTATION_QUAT:
-		*(quatf*)out = priv->sensor_fusion.orient;
+		//*(quatf*)out = priv->sensor_fusion.orient;
 		break;
 
 	case OHMD_POSITION_VECTOR:
-		printf("Poll: %d\n", vivelibre_poll());
-		out[0] = out[1] = out[2] = 0;
+		pos = vivelibre_poll();
+		printf("Poll: %d\n", pos[0]);
+		out[0] = pos[0];
+		out[1] = pos[1];
+		out[2] = pos[2];
 		break;
 
 	case OHMD_DISTORTION_K:
@@ -291,6 +295,7 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 
 	int idx = atoi(desc->path);
 
+	/*
 	// Open the HMD device
 	priv->hmd_handle = open_device_idx(HTC_ID, VIVE_HMD, 0, 1, idx);
 
@@ -352,6 +357,7 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 	vive_decode_config_packet(&priv->vive_config, packet_buffer, offset);
 
 	free(packet_buffer);
+	*/
 
 	// Set default device properties
 	ohmd_set_default_device_properties(&priv->base.properties);
@@ -443,7 +449,7 @@ static void get_device_list(ohmd_driver* driver, ohmd_device_list* list)
 
 		desc->driver_ptr = driver;
 		desc->device_class = OHMD_DEVICE_CLASS_HMD;
-		desc->device_flags = OHMD_DEVICE_FLAGS_ROTATIONAL_TRACKING;
+		desc->device_flags = OHMD_DEVICE_FLAGS_POSITIONAL_TRACKING | OHMD_DEVICE_FLAGS_ROTATIONAL_TRACKING;
 
 		cur_dev = cur_dev->next;
 		idx++;
