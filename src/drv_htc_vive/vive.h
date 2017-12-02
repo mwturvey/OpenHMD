@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 #include "../openhmdi.h"
-#include "magic.h"
+#include "lighthouse/vl_magic.h"
 
 typedef enum
 {

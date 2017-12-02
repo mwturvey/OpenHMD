@@ -25,6 +25,7 @@
 #include <limits.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include "lighthouse/cinterface.h"
 
 #include "vive.h"
 
@@ -166,6 +167,7 @@ static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 		break;
 
 	case OHMD_POSITION_VECTOR:
+		printf("Poll: %d\n", vivelibre_poll());
 		out[0] = out[1] = out[2] = 0;
 		break;
 

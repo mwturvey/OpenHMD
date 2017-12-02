@@ -75,17 +75,46 @@ if(OPENHMD_DRIVER_PSVR)
 endif(OPENHMD_DRIVER_PSVR)
 
 if(OPENHMD_DRIVER_HTC_VIVE)
+include(FindPkgConfig)
 	set(openhmd_source_files ${openhmd_source_files}
 	${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/vive.c
 	${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/packet.c
 	#${CMAKE_CURRENT_LIST_DIR}/src/ext_deps/miniz.c
 	${CMAKE_CURRENT_LIST_DIR}/src/ext_deps/mjson.c
+	${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/lighthouse/vl_magic.h
 	)
 	add_definitions(-DDRIVER_HTC_VIVE)
 
 	find_package(HIDAPI REQUIRED)
 	include_directories(${HIDAPI_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${HIDAPI_LIBRARIES})
+
+find_package(Eigen3 REQUIRED)
+find_package(OpenCV REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIR} ${HIDAPI_INCLUDE_DIRS} src)
+PKG_CHECK_MODULES (JSONCPP REQUIRED jsoncpp)
+	set(VL_SOURCES
+    ${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/lighthouse/hidraw.h
+    ${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/lighthouse/vl_driver.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/lighthouse/vl_driver.h
+    ${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/lighthouse/vl_fusion.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/lighthouse/vl_fusion.h
+    ${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/lighthouse/vl_magic.h
+    ${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/lighthouse/vl_messages.h
+    ${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/lighthouse/vl_config.h
+    ${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/lighthouse/vl_config.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/lighthouse/vl_math.h
+    ${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/lighthouse/vl_light.h
+    ${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/lighthouse/vl_python.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/lighthouse/vl_python.h
+    ${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/lighthouse/cinterface.cpp
+)
+add_library(vive-libre SHARED ${VL_SOURCES})
+	target_link_libraries(vive-libre
+    ${HIDAPI_LIBRARIES}
+    ${ZLIB_LIBRARIES}
+    ${JSONCPP_LIBRARIES}
+    ${OpenCV_LIBRARIES})
 endif(OPENHMD_DRIVER_HTC_VIVE)
 
 if(OPENHMD_DRIVER_NOLO)
@@ -135,6 +164,11 @@ SET_TARGET_PROPERTIES(openhmd-shared PROPERTIES OUTPUT_NAME openhmd CLEAN_DIRECT
 add_library(openhmd-static STATIC ${openhmd_source_files})
 SET_TARGET_PROPERTIES(openhmd-static PROPERTIES OUTPUT_NAME openhmd CLEAN_DIRECT_OUTPUT 1)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_DIR}/)
+
+if(OPENHMD_DRIVER_HTC_VIVE)
+target_link_libraries(openhmd-shared vive-libre)
+target_link_libraries(openhmd-static vive-libre)
+endif(OPENHMD_DRIVER_HTC_VIVE)
 
 #install properties
 install (TARGETS openhmd-shared openhmd-static DESTINATION lib)
