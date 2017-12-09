@@ -109,7 +109,6 @@ vive_sensor_sample* get_next_sample(vive_sensor_packet* pkt, int last_seq)
 
 static void update_device(ohmd_device* device)
 {
-	return;
 	vive_priv* priv = (vive_priv*)device;
 
 	int size = 0;
@@ -161,15 +160,16 @@ static void update_device(ohmd_device* device)
 static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 {
 	vive_priv* priv = (vive_priv*)device;
-	int* pos;
+	float* pos;
 	switch(type){
 	case OHMD_ROTATION_QUAT:
-		//*(quatf*)out = priv->sensor_fusion.orient;
+		*(quatf*)out = priv->sensor_fusion.orient;
+		printf("Poll rot: %f %f %f %f\n", out[0], out[1], out[2], out[3]);
 		break;
 
 	case OHMD_POSITION_VECTOR:
 		pos = vivelibre_poll();
-		printf("Poll: %d\n", pos[0]);
+		printf("Poll pos: %f %f %f\n", pos[0], pos[1], pos[2]);
 		out[0] = pos[0];
 		out[1] = pos[1];
 		out[2] = pos[2];
@@ -295,6 +295,49 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 
 	int idx = atoi(desc->path);
 
+	vive_libre_init();
+	priv->hmd_handle = vivelibre_get_hmd_device();
+	if(hid_set_nonblocking(priv->hmd_handle, 1) == -1){
+		ohmd_set_error(driver->ctx, "failed to set non-blocking on device");
+		goto cleanup;
+	}
+	priv->imu_handle = vivelibre_get_hmd_imu_device();
+	if(hid_set_nonblocking(priv->imu_handle, 1) == -1){
+		ohmd_set_error(driver->ctx, "failed to set non-blocking on device");
+		goto cleanup;
+	}
+	dump_info_string(hid_get_manufacturer_string, "manufacturer", priv->hmd_handle);
+	dump_info_string(hid_get_product_string , "product", priv->hmd_handle);
+	dump_info_string(hid_get_serial_number_string, "serial number", priv->hmd_handle);
+	hret = hid_send_feature_report(priv->hmd_handle, vive_magic_power_on, sizeof(vive_magic_power_on));
+	printf("power on magic: %d\n", hret);
+	unsigned char buffer[128];
+	int bytes;
+	printf("Getting feature report 16 to 39\n");
+	buffer[0] = 16;
+	bytes = hid_get_feature_report(priv->imu_handle, buffer, sizeof(buffer));
+	printf("got %i bytes\n", bytes);
+	for (int i = 0; i < bytes; i++) {
+		printf("%02hx ", buffer[i]);
+	}
+	printf("\n\n");
+
+	unsigned char* packet_buffer = malloc(4096);
+
+	int offset = 0;
+	while (buffer[1] != 0) {
+		buffer[0] = 17;
+		bytes = hid_get_feature_report(priv->imu_handle, buffer, sizeof(buffer));
+
+		memcpy((uint8_t*)packet_buffer + offset, buffer+2, buffer[1]);
+		offset += buffer[1];
+	}
+	packet_buffer[offset] = '\0';
+	//printf("Result: %s\n", packet_buffer);
+	//vive_decode_config_packet(&priv->vive_config, packet_buffer, offset);
+
+	free(packet_buffer);
+
 	/*
 	// Open the HMD device
 	priv->hmd_handle = open_device_idx(HTC_ID, VIVE_HMD, 0, 1, idx);
@@ -417,11 +460,11 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 	priv->base.close = close_device;
 	priv->base.getf = getf;
 
-	/*
+
 	ofusion_init(&priv->sensor_fusion);
 
 	ofq_init(&priv->gyro_q, 128);
-*/
+
 	return (ohmd_device*)priv;
 
 cleanup:

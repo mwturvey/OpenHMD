@@ -16,12 +16,11 @@
 
 #include "vl_python.h"
 
-vl_driver* driver;
 
 
 static void signal_interrupt_handler(int sig) {
     signal(sig, SIG_IGN);
-    delete(driver);
+    //delete(driver); //TODO
     exit(0);
 }
 

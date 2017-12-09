@@ -6,6 +6,7 @@
 
 class ViveLibre {
  public:
+  vl_driver* driver;
   ViveLibre();
   ~ViveLibre();
   void connect();
