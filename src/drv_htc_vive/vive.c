@@ -48,7 +48,8 @@ static void update_device(ohmd_device* device)
 	//printf("Update!\n");
 	survive_poll(priv->ctx);
 }
-
+FLT libsurvive_pos[3];
+FLT libsurvive_quat[4];
 static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 {
 	vive_priv* priv = (vive_priv*)device;
@@ -59,12 +60,22 @@ static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 		out[1] = priv->rot.x;
 		out[2] = priv->rot.y;
 		out[3] = priv->rot.z;
+
+		out[0] = libsurvive_quat[0];
+		out[1] = libsurvive_quat[1];
+		out[2] = libsurvive_quat[2];
+		out[3] = libsurvive_quat[3];
+
 		break;
 
 	case OHMD_POSITION_VECTOR:
 		out[0] = priv->pos.x;
 		out[1] = priv->pos.y;
 		out[2] = priv->pos.z;
+
+		out[0] = libsurvive_pos[0];
+		out[1] = libsurvive_pos[1];
+		out[2] = libsurvive_pos[2];
 		break;
 
 	case OHMD_DISTORTION_K:
@@ -100,22 +111,22 @@ void testprog_button_process(SurviveObject * so, uint8_t eventType, uint8_t butt
 
 }
 
-vive_priv* priv_global;
+
 void testprog_raw_pose_process(SurviveObject * so, uint8_t lighthouse, FLT *pos, FLT *quat)
 {
 	survive_default_raw_pose_process(so, lighthouse, pos, quat);
 
 	// print the pose;
-	if (strcmp(so->codename, "HMD") == 0) {
+	if (strcmp(so->codename, "HMD") == 0 && lighthouse == 0) {
 		printf("Pose: [%1.1x][%s][% 08.8f,% 08.8f,% 08.8f] [% 08.8f,% 08.8f,% 08.8f,% 08.8f]\n", lighthouse, so->codename, pos[0], pos[1], pos[2], quat[0], quat[1], quat[2], quat[3]);
-		priv_global->pos.x = pos[0];
-		priv_global->pos.y = pos[1];
-		priv_global->pos.z = pos[2];
+		libsurvive_pos[0] = pos[0];
+		libsurvive_pos[1] = pos[1];
+		libsurvive_pos[2] = pos[2];
 
-		priv_global->rot.w = quat[0];
-		priv_global->rot.x = quat[1];
-		priv_global->rot.y = quat[2];
-		priv_global->rot.z = quat[3];
+		libsurvive_quat[0] = quat[0];
+		libsurvive_quat[1] = quat[1];
+		libsurvive_quat[2] = quat[2];
+		libsurvive_quat[3] = quat[3];
 	}
 }
 
@@ -127,7 +138,6 @@ void testprog_imu_process(SurviveObject * so, int mask, FLT * accelgyromag, uint
 static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 {
 	vive_priv* priv = ohmd_alloc(driver->ctx, sizeof(vive_priv));
-	priv_global = priv; // TODO get vive_priv into the callback
 
 	if(!priv)
 		return NULL;
