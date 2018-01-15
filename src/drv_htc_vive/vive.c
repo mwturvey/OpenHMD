@@ -28,6 +28,7 @@
 
 #include "vive.h"
 #include <survive.h>
+#include<pthread.h>
 
 typedef struct {
 	ohmd_device base;
@@ -46,7 +47,7 @@ static void update_device(ohmd_device* device)
 {
 	vive_priv* priv = (vive_priv*)device;
 	//printf("Update!\n");
-	survive_poll(priv->ctx);
+	//survive_poll(priv->ctx);
 }
 FLT libsurvive_pos[3];
 FLT libsurvive_quat[4];
@@ -118,7 +119,14 @@ void testprog_raw_pose_process(SurviveObject * so, uint8_t lighthouse, FLT *pos,
 
 	// print the pose;
 	if (strcmp(so->codename, "HMD") == 0 && lighthouse == 0) {
+		for (int i = 0; i < 3; i++) {
+			if (pos[i] < -10 || pos[i] > 10) return;
+		}
+		for (int i = 0; i < 4; i++) {
+			if (quat[i] < -10 || quat[i] > 10) return;
+		}
 		printf("Pose: [%1.1x][%s][% 08.8f,% 08.8f,% 08.8f] [% 08.8f,% 08.8f,% 08.8f,% 08.8f]\n", lighthouse, so->codename, pos[0], pos[1], pos[2], quat[0], quat[1], quat[2], quat[3]);
+
 		libsurvive_pos[0] = pos[0];
 		libsurvive_pos[1] = pos[1];
 		libsurvive_pos[2] = pos[2];
@@ -133,6 +141,12 @@ void testprog_raw_pose_process(SurviveObject * so, uint8_t lighthouse, FLT *pos,
 void testprog_imu_process(SurviveObject * so, int mask, FLT * accelgyromag, uint32_t timecode, int id)
 {
 	survive_default_imu_process(so, mask, accelgyromag, timecode, id);
+}
+
+void* thread_func(void* argument) {
+	//printf("My first thread!!!\n");
+	while(survive_poll(((vive_priv*) argument)->ctx) == 0) {
+	}
 }
 
 static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
@@ -230,6 +244,9 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 	priv->base.getf = getf;
 
 	//ofq_init(&priv->gyro_q, 128);
+
+	pthread_t my_thread;
+	pthread_create(&my_thread, NULL, thread_func, priv);
 
 	return (ohmd_device*)priv;
 
