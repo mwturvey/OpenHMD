@@ -125,7 +125,7 @@ void testprog_raw_pose_process(SurviveObject * so, uint8_t lighthouse, FLT *pos,
 		for (int i = 0; i < 4; i++) {
 			if (quat[i] < -10 || quat[i] > 10) return;
 		}
-		printf("Pose: [%1.1x][%s][% 08.8f,% 08.8f,% 08.8f] [% 08.8f,% 08.8f,% 08.8f,% 08.8f]\n", lighthouse, so->codename, pos[0], pos[1], pos[2], quat[0], quat[1], quat[2], quat[3]);
+		printf("thread %d: Pose: [%1.1x][%s][% 08.8f,% 08.8f,% 08.8f] [% 08.8f,% 08.8f,% 08.8f,% 08.8f]\n", pthread_self(), lighthouse, so->codename, pos[0], pos[1], pos[2], quat[0], quat[1], quat[2], quat[3]);
 
 		libsurvive_pos[0] = pos[0];
 		libsurvive_pos[1] = pos[1];
@@ -144,8 +144,21 @@ void testprog_imu_process(SurviveObject * so, int mask, FLT * accelgyromag, uint
 }
 
 void* thread_func(void* argument) {
-	//printf("My first thread!!!\n");
-	while(survive_poll(((vive_priv*) argument)->ctx) == 0) {
+	vive_priv* priv = (vive_priv*) argument;
+	priv->ctx = survive_init( 0 );
+	if( !priv->ctx )
+	{
+		fprintf( stderr, "Fatal. Could not start\n" );
+	}
+
+
+	//printf("thread %d installs libsurvive callbacks\n", pthread_self());
+	survive_install_button_fn(priv->ctx, testprog_button_process);
+	survive_install_raw_pose_fn(priv->ctx, testprog_raw_pose_process);
+	survive_install_imu_fn(priv->ctx, testprog_imu_process);
+	survive_cal_install(priv->ctx);
+
+	while(survive_poll(priv->ctx) == 0) {
 	}
 }
 
@@ -172,19 +185,10 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 	//hret = hid_send_feature_report(priv->hmd_handle, vive_magic_power_on, sizeof(vive_magic_power_on));
 	//printf("power on magic: %d\n", hret);
 
-	//ASDF
-	priv->ctx = survive_init( 0 );
 
-	if( !priv->ctx )
-	{
-		fprintf( stderr, "Fatal. Could not start\n" );
-	}
-
-
-	survive_install_button_fn(priv->ctx, testprog_button_process);
-	survive_install_raw_pose_fn(priv->ctx, testprog_raw_pose_process);
-	survive_install_imu_fn(priv->ctx, testprog_imu_process);
-	survive_cal_install(priv->ctx);
+	pthread_t my_thread;
+	pthread_create(&my_thread, NULL, thread_func, priv);
+	//printf("thread %d creates libsurvive thread\n", pthread_self());
 
 	// Set default device properties
 	ohmd_set_default_device_properties(&priv->base.properties);
@@ -244,9 +248,6 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 	priv->base.getf = getf;
 
 	//ofq_init(&priv->gyro_q, 128);
-
-	pthread_t my_thread;
-	pthread_create(&my_thread, NULL, thread_func, priv);
 
 	return (ohmd_device*)priv;
 
