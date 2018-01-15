@@ -1,0 +1,6 @@
+[submodule "external/libsurvive"]
+	path = external/libsurvive
+	url = https://github.com/cnlohr/libsurvive.git
+[submodule "src/ext_deps/libsurvive"]
+	path = src/ext_deps/libsurvive
+	url = https://github.com/cnlohr/libsurvive.git

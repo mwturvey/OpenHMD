@@ -27,19 +27,27 @@
 #include <stdbool.h>
 
 #include "vive.h"
+#include <survive.h>
 
 typedef struct {
 	ohmd_device base;
 
-	fusion sensor_fusion;
-	vec3f raw_accel, raw_gyro;
+	struct SurviveContext * ctx;
+
+	vec3f pos;
+	quatf rot;
 	uint32_t last_ticks;
 	uint8_t last_seq;
 
 	vive_config_packet vive_config;
-	vec3f gyro_error;
-	filter_queue gyro_q;
 } vive_priv;
+
+static void update_device(ohmd_device* device)
+{
+	vive_priv* priv = (vive_priv*)device;
+	//printf("Update!\n");
+	survive_poll(priv->ctx);
+}
 
 static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 {
@@ -47,11 +55,16 @@ static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 
 	switch(type){
 	case OHMD_ROTATION_QUAT:
-		*(quatf*)out = priv->sensor_fusion.orient;
+		out[0] = priv->rot.w;
+		out[1] = priv->rot.x;
+		out[2] = priv->rot.y;
+		out[3] = priv->rot.z;
 		break;
 
 	case OHMD_POSITION_VECTOR:
-		out[0] = out[1] = out[2] = 0;
+		out[0] = priv->pos.x;
+		out[1] = priv->pos.y;
+		out[2] = priv->pos.z;
 		break;
 
 	case OHMD_DISTORTION_K:
@@ -68,9 +81,53 @@ static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 	return 0;
 }
 
+
+void testprog_button_process(SurviveObject * so, uint8_t eventType, uint8_t buttonId, uint8_t axis1Id, uint16_t axis1Val, uint8_t axis2Id, uint16_t axis2Val)
+{
+	survive_default_button_process(so, eventType, buttonId, axis1Id, axis1Val, axis2Id, axis2Val);
+
+	// do nothing.
+	printf("ButtonEntry: eventType:%x, buttonId:%d, axis1:%d, axis1Val:%8.8x, axis2:%d, axis2Val:%8.8x\n",
+	       eventType,
+	buttonId,
+	axis1Id,
+	axis1Val,
+	axis2Id,
+	axis2Val);
+
+	// Note: the code for haptic feedback is not yet written to support wired USB connections to the controller.
+	// Work is still needed to reverse engineer that USB protocol.
+
+}
+
+vive_priv* priv_global;
+void testprog_raw_pose_process(SurviveObject * so, uint8_t lighthouse, FLT *pos, FLT *quat)
+{
+	survive_default_raw_pose_process(so, lighthouse, pos, quat);
+
+	// print the pose;
+	if (strcmp(so->codename, "HMD") == 0) {
+		printf("Pose: [%1.1x][%s][% 08.8f,% 08.8f,% 08.8f] [% 08.8f,% 08.8f,% 08.8f,% 08.8f]\n", lighthouse, so->codename, pos[0], pos[1], pos[2], quat[0], quat[1], quat[2], quat[3]);
+		priv_global->pos.x = pos[0];
+		priv_global->pos.y = pos[1];
+		priv_global->pos.z = pos[2];
+
+		priv_global->rot.w = quat[0];
+		priv_global->rot.x = quat[1];
+		priv_global->rot.y = quat[2];
+		priv_global->rot.z = quat[3];
+	}
+}
+
+void testprog_imu_process(SurviveObject * so, int mask, FLT * accelgyromag, uint32_t timecode, int id)
+{
+	survive_default_imu_process(so, mask, accelgyromag, timecode, id);
+}
+
 static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 {
 	vive_priv* priv = ohmd_alloc(driver->ctx, sizeof(vive_priv));
+	priv_global = priv; // TODO get vive_priv into the callback
 
 	if(!priv)
 		return NULL;
@@ -92,6 +149,18 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 	//printf("power on magic: %d\n", hret);
 
 	//ASDF
+	priv->ctx = survive_init( 0 );
+
+	if( !priv->ctx )
+	{
+		fprintf( stderr, "Fatal. Could not start\n" );
+	}
+
+
+	survive_install_button_fn(priv->ctx, testprog_button_process);
+	survive_install_raw_pose_fn(priv->ctx, testprog_raw_pose_process);
+	survive_install_imu_fn(priv->ctx, testprog_imu_process);
+	survive_cal_install(priv->ctx);
 
 	// Set default device properties
 	ohmd_set_default_device_properties(&priv->base.properties);
@@ -147,12 +216,10 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 			eye_to_screen_distance);
 
 	// set up device callbacks
-
+	priv->base.update = update_device;
 	priv->base.getf = getf;
 
-	ofusion_init(&priv->sensor_fusion);
-
-	ofq_init(&priv->gyro_q, 128);
+	//ofq_init(&priv->gyro_q, 128);
 
 	return (ohmd_device*)priv;
 

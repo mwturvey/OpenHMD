@@ -75,6 +75,9 @@ if(OPENHMD_DRIVER_PSVR)
 endif(OPENHMD_DRIVER_PSVR)
 
 if(OPENHMD_DRIVER_HTC_VIVE)
+	add_custom_target(libsurvive COMMAND make
+                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/ext_deps/libsurvive
+	)
 	set(openhmd_source_files ${openhmd_source_files}
 	${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/vive.c
 	${CMAKE_CURRENT_LIST_DIR}/src/drv_htc_vive/packet.c
@@ -84,8 +87,8 @@ if(OPENHMD_DRIVER_HTC_VIVE)
 	add_definitions(-DDRIVER_HTC_VIVE)
 
 	find_package(HIDAPI REQUIRED)
-	include_directories(${HIDAPI_INCLUDE_DIRS})
-	set(LIBS ${LIBS} ${HIDAPI_LIBRARIES})
+	include_directories(${HIDAPI_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/src/ext_deps/libsurvive/include/libsurvive ${CMAKE_CURRENT_SOURCE_DIR}/src/ext_deps/libsurvive/redist)
+	set(LIBS ${LIBS} ${HIDAPI_LIBRARIES} -L${CMAKE_CURRENT_SOURCE_DIR}/src/ext_deps/libsurvive/lib/ -lsurvive)
 endif(OPENHMD_DRIVER_HTC_VIVE)
 
 if(OPENHMD_DRIVER_NOLO)
@@ -135,6 +138,9 @@ SET_TARGET_PROPERTIES(openhmd-shared PROPERTIES OUTPUT_NAME openhmd CLEAN_DIRECT
 add_library(openhmd-static STATIC ${openhmd_source_files})
 SET_TARGET_PROPERTIES(openhmd-static PROPERTIES OUTPUT_NAME openhmd CLEAN_DIRECT_OUTPUT 1)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_DIR}/)
+
+add_dependencies(openhmd-shared libsurvive)
+add_dependencies(openhmd-static libsurvive)
 
 #install properties
 install (TARGETS openhmd-shared openhmd-static DESTINATION lib)
