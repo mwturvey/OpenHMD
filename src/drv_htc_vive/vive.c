@@ -57,10 +57,12 @@ static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 
 	switch(type){
 	case OHMD_ROTATION_QUAT:
+		/*
 		out[0] = priv->rot.w;
 		out[1] = priv->rot.x;
 		out[2] = priv->rot.y;
 		out[3] = priv->rot.z;
+		*/
 
 		out[0] = libsurvive_quat[0];
 		out[1] = libsurvive_quat[1];
@@ -70,6 +72,7 @@ static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 		break;
 
 	case OHMD_POSITION_VECTOR:
+		/*
 		out[0] = priv->pos.x;
 		out[1] = priv->pos.y;
 		out[2] = priv->pos.z;
@@ -77,6 +80,8 @@ static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 		out[0] = libsurvive_pos[0];
 		out[1] = libsurvive_pos[1];
 		out[2] = libsurvive_pos[2];
+		*/
+
 		break;
 
 	case OHMD_DISTORTION_K:
@@ -122,7 +127,7 @@ void testprog_raw_pose_process(SurviveObject * so, uint8_t lighthouse, FLT *pos,
 	survive_default_raw_pose_process(so, lighthouse, pos, quat);
 
 	// print the pose;
-	if (strcmp(so->codename, "HMD") == 0 && lighthouse == 0) {
+	if (strcmp(so->codename, "HMD") == 0 && lighthouse == 1) {
 
 		/*
 		for (int i = 0; i < 3; i++) {
