@@ -28,10 +28,11 @@
 
 #include "vive.h"
 #include <survive.h>
-#include<pthread.h>
 
 typedef struct {
 	ohmd_device base;
+	FLT libsurvive_pos[3];
+	FLT libsurvive_quat[4];
 
 	struct SurviveContext * ctx;
 
@@ -40,8 +41,13 @@ typedef struct {
 	uint32_t last_ticks;
 	uint8_t last_seq;
 
+	ohmd_thread* survive_poll_thread;
+	ohmd_mutex* survive_copy_mutex;
+
 	vive_config_packet vive_config;
 } vive_priv;
+
+static vive_priv* global_priv;
 
 static void update_device(ohmd_device* device)
 {
@@ -49,12 +55,12 @@ static void update_device(ohmd_device* device)
 	//printf("Update!\n");
 	//survive_poll(priv->ctx);
 }
-FLT libsurvive_pos[3];
-FLT libsurvive_quat[4];
+
 static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 {
 	vive_priv* priv = (vive_priv*)device;
 
+	ohmd_lock_mutex(global_priv->survive_copy_mutex);
 	switch(type){
 	case OHMD_ROTATION_QUAT:
 		/*
@@ -64,10 +70,10 @@ static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 		out[3] = priv->rot.z;
 		*/
 
-		out[0] = libsurvive_quat[0];
-		out[1] = libsurvive_quat[1];
-		out[2] = libsurvive_quat[2];
-		out[3] = libsurvive_quat[3];
+		out[0] = priv->libsurvive_quat[0];
+		out[1] = priv->libsurvive_quat[1];
+		out[2] = priv->libsurvive_quat[2];
+		out[3] = priv->libsurvive_quat[3];
 
 		break;
 
@@ -78,9 +84,9 @@ static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 		out[2] = priv->pos.z;
 		*/
 
-		out[0] = libsurvive_pos[0];
-		out[1] = libsurvive_pos[1];
-		out[2] = libsurvive_pos[2];
+		out[0] = priv->libsurvive_pos[0];
+		out[1] = priv->libsurvive_pos[1];
+		out[2] = priv->libsurvive_pos[2];
 
 		break;
 
@@ -94,6 +100,7 @@ static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 		return -1;
 		break;
 	}
+	ohmd_unlock_mutex(global_priv->survive_copy_mutex);
 
 	return 0;
 }
@@ -138,17 +145,19 @@ void testprog_raw_pose_process(SurviveObject * so, uint8_t lighthouse, FLT *pos,
 		}
 		*/
 
-		printf("thread %d: Pose: [%1.1x][%s][% 08.8f,% 08.8f,% 08.8f] [% 08.8f,% 08.8f,% 08.8f,% 08.8f]\n", pthread_self(), lighthouse, so->codename, pos[0], pos[1], pos[2], quat[0], quat[1], quat[2], quat[3]);
+		printf("Pose: [%1.1x][%s][% 08.8f,% 08.8f,% 08.8f] [% 08.8f,% 08.8f,% 08.8f,% 08.8f]\n", lighthouse, so->codename, pos[0], pos[1], pos[2], quat[0], quat[1], quat[2], quat[3]);
 
+		vive_priv* priv = global_priv;
+		ohmd_lock_mutex(priv->survive_copy_mutex);
+		priv->libsurvive_pos[0] = pos[0];
+		priv->libsurvive_pos[1] = pos[1];
+		priv->libsurvive_pos[2] = pos[2];
 
-		libsurvive_pos[0] = pos[0];
-		libsurvive_pos[1] = pos[1];
-		libsurvive_pos[2] = pos[2];
-
-		libsurvive_quat[0] = quat[0];
-		libsurvive_quat[1] = quat[1];
-		libsurvive_quat[2] = quat[2];
-		libsurvive_quat[3] = quat[3];
+		priv->libsurvive_quat[0] = quat[0];
+		priv->libsurvive_quat[1] = quat[1];
+		priv->libsurvive_quat[2] = quat[2];
+		priv->libsurvive_quat[3] = quat[3];
+		ohmd_unlock_mutex(priv->survive_copy_mutex);
 	}
 }
 
@@ -157,14 +166,15 @@ void testprog_imu_process(SurviveObject * so, int mask, FLT * accelgyromag, uint
 	survive_default_imu_process(so, mask, accelgyromag, timecode, id);
 }
 
-void* thread_func(void* argument) {
+
+static unsigned int survive_poll_thread(void* argument) {
 	vive_priv* priv = (vive_priv*) argument;
+	global_priv = priv; // TODO: get rid of this
 	priv->ctx = survive_init( 0 );
 	if( !priv->ctx )
 	{
 		fprintf( stderr, "Fatal. Could not start\n" );
 	}
-
 
 	//printf("thread %d installs libsurvive callbacks\n", pthread_self());
 	survive_install_button_fn(priv->ctx, testprog_button_process);
@@ -174,6 +184,7 @@ void* thread_func(void* argument) {
 
 	while(survive_poll(priv->ctx) == 0) {
 	}
+	return 0;
 }
 
 static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
@@ -200,8 +211,8 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 	//printf("power on magic: %d\n", hret);
 
 
-	pthread_t my_thread;
-	pthread_create(&my_thread, NULL, thread_func, priv);
+	priv->survive_poll_thread = ohmd_create_thread(driver->ctx, survive_poll_thread, priv);
+	priv->survive_copy_mutex = ohmd_create_mutex(driver->ctx);
 	//printf("thread %d creates libsurvive thread\n", pthread_self());
 
 	// Set default device properties
@@ -307,6 +318,10 @@ static void get_device_list(ohmd_driver* driver, ohmd_device_list* list)
 
 static void destroy_driver(ohmd_driver* drv)
 {
+	/*
+	ohmd_destroy_thread(priv->survive_poll_thread);
+	ohmd_destroy_mutex(priv->survive_copy_mutex);
+	*/
 	LOGD("shutting down HTC Vive driver");
 	free(drv);
 }
