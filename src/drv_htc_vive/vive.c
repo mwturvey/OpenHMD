@@ -76,11 +76,11 @@ static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 		out[0] = priv->pos.x;
 		out[1] = priv->pos.y;
 		out[2] = priv->pos.z;
+		*/
 
 		out[0] = libsurvive_pos[0];
 		out[1] = libsurvive_pos[1];
 		out[2] = libsurvive_pos[2];
-		*/
 
 		break;
 
@@ -139,6 +139,7 @@ void testprog_raw_pose_process(SurviveObject * so, uint8_t lighthouse, FLT *pos,
 		*/
 
 		printf("thread %d: Pose: [%1.1x][%s][% 08.8f,% 08.8f,% 08.8f] [% 08.8f,% 08.8f,% 08.8f,% 08.8f]\n", pthread_self(), lighthouse, so->codename, pos[0], pos[1], pos[2], quat[0], quat[1], quat[2], quat[3]);
+
 
 		libsurvive_pos[0] = pos[0];
 		libsurvive_pos[1] = pos[1];
