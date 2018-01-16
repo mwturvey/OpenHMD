@@ -70,10 +70,13 @@ static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 		out[3] = priv->rot.z;
 		*/
 
-		out[0] = priv->libsurvive_quat[0];
-		out[1] = priv->libsurvive_quat[1];
-		out[2] = priv->libsurvive_quat[2];
-		out[3] = priv->libsurvive_quat[3];
+		// libsurvive_quat is 0=w 1=x 2=y 3=z
+		// out is 0=x 1=y 2=z 3=w
+
+		out[0] = priv->libsurvive_quat[1];
+		out[1] = priv->libsurvive_quat[2];
+		out[2] = priv->libsurvive_quat[3];
+		out[3] = priv->libsurvive_quat[0];
 
 		break;
 
