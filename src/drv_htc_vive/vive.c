@@ -93,6 +93,10 @@ static int getf(ohmd_device* device, ohmd_float_value type, float* out)
 	return 0;
 }
 
+static void close_device(ohmd_device* device)
+{
+}
+
 
 void testprog_button_process(SurviveObject * so, uint8_t eventType, uint8_t buttonId, uint8_t axis1Id, uint16_t axis1Val, uint8_t axis2Id, uint16_t axis2Val)
 {
@@ -119,12 +123,16 @@ void testprog_raw_pose_process(SurviveObject * so, uint8_t lighthouse, FLT *pos,
 
 	// print the pose;
 	if (strcmp(so->codename, "HMD") == 0 && lighthouse == 0) {
+
+		/*
 		for (int i = 0; i < 3; i++) {
 			if (pos[i] < -10 || pos[i] > 10) return;
 		}
 		for (int i = 0; i < 4; i++) {
 			if (quat[i] < -10 || quat[i] > 10) return;
 		}
+		*/
+
 		printf("thread %d: Pose: [%1.1x][%s][% 08.8f,% 08.8f,% 08.8f] [% 08.8f,% 08.8f,% 08.8f,% 08.8f]\n", pthread_self(), lighthouse, so->codename, pos[0], pos[1], pos[2], quat[0], quat[1], quat[2], quat[3]);
 
 		libsurvive_pos[0] = pos[0];
@@ -246,6 +254,7 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 	// set up device callbacks
 	priv->base.update = update_device;
 	priv->base.getf = getf;
+	priv->base.close = close_device;
 
 	//ofq_init(&priv->gyro_q, 128);
 

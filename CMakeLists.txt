@@ -87,7 +87,7 @@ if(OPENHMD_DRIVER_HTC_VIVE)
 	add_definitions(-DDRIVER_HTC_VIVE)
 
 	find_package(HIDAPI REQUIRED)
-	include_directories(${HIDAPI_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/src/ext_deps/libsurvive/include/libsurvive ${CMAKE_CURRENT_SOURCE_DIR}/src/ext_deps/libsurvive/redist)
+	include_directories(${HIDAPI_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/src/ext_deps/libsurvive/include/libsurvive)
 	set(LIBS ${LIBS} ${HIDAPI_LIBRARIES} -L${CMAKE_CURRENT_SOURCE_DIR}/src/ext_deps/libsurvive/lib/ -lsurvive)
 endif(OPENHMD_DRIVER_HTC_VIVE)
 
